@@ -1,4 +1,4 @@
-package codywebscraper
+package codywebapi
 
 import "log"
 

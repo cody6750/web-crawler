@@ -1,7 +1,7 @@
 package main
 
-import codywebscraper "github.com/cody6750/codywebscraper/codyWebScraper"
+import codywebapi "github.com/cody6750/codywebapi/codyWebAPI"
 
 func main() {
-	codywebscraper.Run()
+	codywebapi.Run()
 }

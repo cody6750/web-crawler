@@ -3,6 +3,7 @@ package codywebapi
 import (
 	"bufio"
 	"errors"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -154,6 +155,7 @@ func parseFlags(command string, input []string) error {
 
 func checkIfFlagIsSupported(flag string) (bool, error) {
 	functionName := tools.FuncName()
+	flag = strings.TrimSpace(flag)
 	if _, flagSupported := supportedFlags[flag]; flagSupported != true {
 		log.Printf("%v "+errFlagNotSet.Error(), functionName)
 		return false, errUnsupportedFlag
@@ -164,11 +166,18 @@ func checkIfFlagIsSupported(flag string) (bool, error) {
 func checkIfWebsiteIsSupported(website string) (bool, error) {
 	functionName := tools.FuncName()
 	website = strings.TrimSpace(website)
-	if _, websiteSupported := supportedWebsites[website]; websiteSupported != true {
-		log.Printf("%v "+errWebsiteFlag.Error()+" :%v", functionName, website)
-		return false, errWebsiteFlag
+	files, err := ioutil.ReadDir("./website")
+	if err != nil {
+		log.Fatal(err)
 	}
-	return true, nil
+	for _, f := range files {
+		if website == f.Name() {
+			log.Printf("%v %v is a supported website.", functionName, website)
+			return true, nil
+		}
+	}
+	log.Printf("%v "+errWebsiteFlag.Error()+" : %v", functionName, website)
+	return false, errWebsiteFlag
 }
 
 func getWebsiteFromFlags() {

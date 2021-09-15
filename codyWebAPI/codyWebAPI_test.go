@@ -2,6 +2,7 @@ package codywebapi
 
 import (
 	"log"
+	"os"
 	"testing"
 )
 
@@ -241,6 +242,7 @@ func Test_checkIfWebsiteIsSupported(t *testing.T) {
 			wantErr: nil,
 		},
 	}
+	os.Chdir("..")
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {

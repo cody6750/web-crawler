@@ -56,34 +56,32 @@ func Run() {
 }
 
 func initializeComponent() {
-	functionName := tools.FuncName()
-	log.Printf("%v Initializing component: %v", functionName, componentName)
-	log.Printf("%v Finished initializing component %v", functionName, componentName)
+	log.Printf("%v Initializing component: %v", tools.FuncName(), componentName)
+	log.Printf("%v Finished initializing component %v", tools.FuncName(), componentName)
 
 	scanner := bufio.NewScanner(os.Stdin)
-	log.Printf("%v Component %v is up and running. Now waiting for input", functionName, componentName)
+	log.Printf("%v Component %v is up and running. Now waiting for input", tools.FuncName(), componentName)
 	for scanner.Scan() {
 		parseInput(scanner.Text())
 	}
 }
 
 func parseInput(input string) error {
-	functionName := tools.FuncName()
 	splitInput := strings.Split(input, " ")
 
 	if len(splitInput) < minimumInputLength {
-		log.Printf("%v Not enough arguments given", functionName)
+		log.Printf("%v Not enough arguments given", tools.FuncName())
 		return errInput
 	}
 	if splitInput[0] != componentName {
-		log.Printf("%v %v is the incorrect program. Please use %v instead", functionName, splitInput[0], componentName)
+		log.Printf("%v %v is the incorrect program. Please use %v instead", tools.FuncName(), splitInput[0], componentName)
 		return errInput
 	}
 	inputCommand, inputCommandExist := applicationCommands[splitInput[1]]
 	if inputCommandExist {
 		applicationCommand = inputCommand
 	} else {
-		log.Printf("%v Command does not exist, please use 'help' to list all available commands", functionName)
+		log.Printf("%v Command does not exist, please use 'help' to list all available commands", tools.FuncName())
 		return errInput
 	}
 	// Passes all flags from the input
@@ -94,12 +92,11 @@ func parseInput(input string) error {
 }
 
 func parseFlags(command string, input []string) error {
-	functionName := tools.FuncName()
 	var currentFlag, flagValue string
 	var newFlag flag
 	// If the first word isn't a flag, exit early.
 	if !strings.HasPrefix(input[0], "--") {
-		log.Printf("%v Flag not provided in %v", functionName, input)
+		log.Printf("%v Flag not provided in %v", tools.FuncName(), input)
 		return errParseFlag
 	}
 
@@ -108,14 +105,13 @@ func parseFlags(command string, input []string) error {
 		if strings.HasPrefix(word, "--") {
 			currentFlag = strings.Trim(word, "--")
 			if supported, _ := checkIfFlagIsSupported(currentFlag); supported != true {
-				log.Printf("%v "+errUnsupportedFlag.Error(), functionName)
+				log.Printf("%v "+errUnsupportedFlag.Error(), tools.FuncName())
 				return errUnsupportedFlag
 			}
 			newFlag.flag = currentFlag
-			log.Print(currentFlag)
 			if index < len(input)-1 {
 				if strings.HasPrefix(input[index+1], "--") {
-					log.Printf("%v "+errFlagNotSet.Error(), functionName)
+					log.Printf("%v "+errFlagNotSet.Error(), tools.FuncName())
 					return errFlagNotSet
 				}
 			}
@@ -130,7 +126,6 @@ func parseFlags(command string, input []string) error {
 					}
 				}
 				listOfFlags = append(listOfFlags, newFlag)
-				log.Printf(newFlag.flag + " 1" + newFlag.flagValue)
 				flagValue = ""
 			} else if index < len(input)-1 {
 				if strings.HasPrefix(input[index+1], "--") {
@@ -142,47 +137,42 @@ func parseFlags(command string, input []string) error {
 						}
 					}
 					listOfFlags = append(listOfFlags, newFlag)
-					log.Printf(newFlag.flag + " 2" + newFlag.flagValue)
 					flagValue = ""
 				}
 			}
 		}
 	}
-	log.Print(listOfFlags)
 	listOfFlags = nil
 	return nil
 }
 
 func checkIfFlagIsSupported(flag string) (bool, error) {
-	functionName := tools.FuncName()
 	flag = strings.TrimSpace(flag)
 	if _, flagSupported := supportedFlags[flag]; flagSupported != true {
-		log.Printf("%v "+errFlagNotSet.Error(), functionName)
+		log.Printf("%v "+errFlagNotSet.Error(), tools.FuncName())
 		return false, errUnsupportedFlag
 	}
 	return true, nil
 }
 
 func checkIfWebsiteIsSupported(website string) (bool, error) {
-	functionName := tools.FuncName()
 	website = strings.TrimSpace(website)
-	files, err := ioutil.ReadDir("./website")
+	files, err := ioutil.ReadDir("./codyWebAPI/website")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	for _, f := range files {
 		if website == f.Name() {
-			log.Printf("%v %v is a supported website.", functionName, website)
+			log.Printf("%v %v is a supported website.", tools.FuncName(), website)
 			return true, nil
 		}
 	}
-	log.Printf("%v "+errWebsiteFlag.Error()+" : %v", functionName, website)
+	log.Printf("%v "+errWebsiteFlag.Error()+" : %v", tools.FuncName(), website)
 	return false, errWebsiteFlag
 }
 
 func getWebsiteFromFlags() {
-	functionName := tools.FuncName()
-	log.Printf("%v Attempting to get website from flags", functionName)
+	log.Printf("%v Attempting to get website from flags", tools.FuncName())
 	switch applicationWebsite {
 	case amazonFlag:
 		w := amazon.Constructor()
@@ -192,19 +182,18 @@ func getWebsiteFromFlags() {
 	case bestbuyFlag:
 		log.Printf("Not implemented yet")
 	default:
-		log.Fatalf("%v Failed to complete function, website %s is not supported", functionName, applicationWebsite)
+		log.Fatalf("%v Failed to complete function, website %s is not supported", tools.FuncName(), applicationWebsite)
 	}
 }
 
 func invokeAmazonActions(website *amazon.Amazon) {
-	functionName := tools.FuncName()
 	switch applicationCommand {
 	case printAction:
 		website.PrintWebsite()
 	case searchAction:
 		website.SearchWebsite(applicationItem)
 	default:
-		log.Fatalf("%v Invalid action,type !help for all avaliable actions", functionName)
+		log.Fatalf("%v Invalid action,type !help for all avaliable actions", tools.FuncName())
 	}
 }
 

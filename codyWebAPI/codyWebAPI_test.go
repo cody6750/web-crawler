@@ -4,6 +4,9 @@ import (
 	"log"
 	"os"
 	"testing"
+
+	"github.com/cody6750/codywebapi/codyWebAPI/website"
+	"github.com/cody6750/codywebapi/codyWebAPI/website/amazon"
 )
 
 const (
@@ -68,6 +71,7 @@ func Test_parseInput(t *testing.T) {
 			},
 		},
 	}
+	os.Chdir("..")
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
@@ -254,6 +258,93 @@ func Test_checkIfWebsiteIsSupported(t *testing.T) {
 			if err != tt.wantErr {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("checkIfWebsiteIsSupported() = %v, want %v\n", got, tt.want)
+			} else {
+				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+			}
+		})
+	}
+}
+
+func Test_callWesbiteFunciton(t *testing.T) {
+	type args struct {
+		website        website.Website
+		functionToCall string
+		params         inputParameters
+	}
+	tests := []struct {
+		name    string
+		arg     args
+		wantErr error
+	}{
+		{
+			name: "unsupported website function",
+			arg: args{
+				website: amazon.Amazon{
+					Name: "amazon",
+				},
+				functionToCall: "unsupported",
+				params: inputParameters{
+					item: "GTX 1080",
+				},
+			},
+			wantErr: errUnsupportedAction,
+		},
+		{
+			name: "amazon Search",
+			arg: args{
+				website: amazon.Amazon{
+					Name: "amazon",
+				},
+				functionToCall: "search",
+				params: inputParameters{
+					item: "GTX 1080",
+				},
+			},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			got := callWebsiteFunction(tt.arg.functionToCall, tt.arg.website, tt.arg.params)
+			if got != tt.wantErr {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("Test_callWesbiteFunciton() = %v, want %v\n", got, tt.wantErr)
+			} else {
+				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+			}
+		})
+	}
+}
+
+func Test_setParameters(t *testing.T) {
+	type args struct {
+		paramToSet string
+		paramValue string
+		params     inputParameters
+	}
+	test := []struct {
+		name    string
+		arg     args
+		wantErr error
+	}{
+		{
+			name: "parameters are set",
+			arg: args{
+				paramToSet: "website",
+				paramValue: "amazon",
+				params:     inputParameters{},
+			},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range test {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			got := setParameters(tt.arg.paramToSet, tt.arg.paramValue, tt.arg.params)
+			if got != tt.wantErr {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("Test_callWesbiteFunciton() = %v, want %v\n", got, tt.wantErr)
 			} else {
 				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 			}

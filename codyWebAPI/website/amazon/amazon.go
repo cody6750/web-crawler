@@ -16,30 +16,30 @@ const (
 
 //Amazon ... implements the Website Interface
 type Amazon struct {
-	name string
+	Name string
 }
 
 // Constructor ..
-func Constructor() *Amazon {
-	var amazonObject = &Amazon{}
-	amazonObject.name = websiteName
+func Constructor() Amazon {
+	var amazonObject = Amazon{}
+	amazonObject.Name = websiteName
 	amazonObject.InitWebsite()
 	return amazonObject
 }
 
 //InitWebsite ..
-func (amazonObject *Amazon) InitWebsite() {
+func (amazonObject Amazon) InitWebsite() {
 	log.Println("Init website")
-	amazonObject.name = websiteName
+	amazonObject.Name = websiteName
 }
 
 //PrintWebsite ..
-func (amazonObject *Amazon) PrintWebsite() {
+func (amazonObject Amazon) PrintWebsite() {
 	log.Println("Amazon")
 }
 
 //SearchWebsite ..
-func (amazonObject *Amazon) SearchWebsite(item string) {
+func (amazonObject Amazon) SearchWebsite(item string) {
 	if item == "" {
 		log.Fatalf("Item no provided, unable to search website %v", websiteName)
 		return

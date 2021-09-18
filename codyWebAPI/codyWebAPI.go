@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/cody6750/codywebapi/codyWebAPI/tools"
-	"github.com/cody6750/codywebapi/codyWebAPI/website/amazon"
+	"github.com/cody6750/codywebapi/codyWebAPI/website"
 )
 
 const (
@@ -24,26 +24,28 @@ const (
 
 var (
 	applicationCommand  string
-	applicationItem     string
-	applicationWebsite  string
 	applicationCommands map[string]string = map[string]string{
 		"search": "search",
-	}
-	supportedWebsites map[string]string = map[string]string{
-		"amazon": "amazon",
 	}
 	supportedFlags map[string]struct{} = map[string]struct{}{
 		"website": {},
 		"item":    {},
 	}
-	errInput           error = errors.New("Invalid Input")
-	errParseFlag       error = errors.New("Error parsing flags")
-	errFlagNotSet      error = errors.New("Error, flag not set")
-	errUnsupportedFlag error = errors.New("Error, unsupported flag")
-	errWebsiteFlag     error = errors.New("Error, unsupported website")
-	listOfFlags        []flag
-	listInt            []int
+	errInput             error = errors.New("invalid Input")
+	errParseFlag         error = errors.New("error parsing flags")
+	errFlagNotSet        error = errors.New("error, flag not set")
+	errUnsupportedAction error = errors.New("error, unsupported action")
+	errUnsupportedFlag   error = errors.New("error, unsupported flag")
+	errUnsupportedParam  error = errors.New("error, unsupported parameter")
+	errWebsiteFlag       error = errors.New("error, unsupported website")
+	listOfFlags          []flag
+	inputParams          inputParameters
 )
+
+type inputParameters struct {
+	website string
+	item    string
+}
 
 type flag struct {
 	flag      string
@@ -62,7 +64,9 @@ func initializeComponent() {
 	scanner := bufio.NewScanner(os.Stdin)
 	log.Printf("%v Component %v is up and running. Now waiting for input", tools.FuncName(), componentName)
 	for scanner.Scan() {
-		parseInput(scanner.Text())
+		if parseInput(scanner.Text()) != nil {
+			log.Printf("%v Failed to call parseInput()", tools.FuncName())
+		}
 	}
 }
 
@@ -104,7 +108,7 @@ func parseFlags(command string, input []string) error {
 	for index, word := range input {
 		if strings.HasPrefix(word, "--") {
 			currentFlag = strings.Trim(word, "--")
-			if supported, _ := checkIfFlagIsSupported(currentFlag); supported != true {
+			if supported, _ := checkIfFlagIsSupported(currentFlag); !supported {
 				log.Printf("%v "+errUnsupportedFlag.Error(), tools.FuncName())
 				return errUnsupportedFlag
 			}
@@ -146,9 +150,22 @@ func parseFlags(command string, input []string) error {
 	return nil
 }
 
+func setParameters(paramToset, paramValue string, inputParams inputParameters) error {
+	switch paramToset {
+	case "website":
+		inputParams.website = paramValue
+	case "item":
+		inputParams.item = paramValue
+	default:
+		log.Printf("%v Unsupported parameter %v", tools.FuncName(), paramToset)
+		return errUnsupportedParam
+	}
+	return nil
+}
+
 func checkIfFlagIsSupported(flag string) (bool, error) {
 	flag = strings.TrimSpace(flag)
-	if _, flagSupported := supportedFlags[flag]; flagSupported != true {
+	if _, flagSupported := supportedFlags[flag]; !flagSupported {
 		log.Printf("%v "+errFlagNotSet.Error(), tools.FuncName())
 		return false, errUnsupportedFlag
 	}
@@ -171,37 +188,33 @@ func checkIfWebsiteIsSupported(website string) (bool, error) {
 	return false, errWebsiteFlag
 }
 
-func getWebsiteFromFlags() {
-	log.Printf("%v Attempting to get website from flags", tools.FuncName())
-	switch applicationWebsite {
-	case amazonFlag:
-		w := amazon.Constructor()
-		//t := &amazon.Amazon{}
-		invokeAmazonActions(w)
-		//invokeAmazonActions(t)
-	case bestbuyFlag:
-		log.Printf("Not implemented yet")
+func callWebsiteFunction(functionToCall string, websiteToCall website.Website, params inputParameters) error {
+	switch functionToCall {
+	case searchAction:
+		websiteToCall.SearchWebsite(params.item)
 	default:
-		log.Fatalf("%v Failed to complete function, website %s is not supported", tools.FuncName(), applicationWebsite)
+		log.Printf("%v Unsupported action %v", tools.FuncName(), functionToCall)
+		return errUnsupportedAction
 	}
+	return nil
 }
 
-func invokeAmazonActions(website *amazon.Amazon) {
-	switch applicationCommand {
-	case printAction:
-		website.PrintWebsite()
-	case searchAction:
-		website.SearchWebsite(applicationItem)
-	default:
-		log.Fatalf("%v Invalid action,type !help for all avaliable actions", tools.FuncName())
-	}
-}
+// func getWebsiteFromFlags() {
+// 	log.Printf("%v Attempting to get website from flags", tools.FuncName())
+// 	switch applicationWebsite {
+// 	case amazonFlag:
+// 		w := amazon.Constructor()
+// 		//t := &amazon.Amazon{}
+// 		//invokeAmazonActions(w)
+// 		//invokeAmazonActions(t)
+// 	case bestbuyFlag:
+// 		log.Printf("Not implemented yet")
+// 	default:
+// 		log.Fatalf("%v Failed to complete function, website %s is not supported", tools.FuncName(), applicationWebsite)
+// 	}
+// }
 
 func shutDown() {
 	log.Printf("Exiting Program")
 	os.Exit(1)
-}
-
-func test() {
-
 }

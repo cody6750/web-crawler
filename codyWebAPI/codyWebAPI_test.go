@@ -44,7 +44,7 @@ func Test_parseInput(t *testing.T) {
 		},
 		{
 			name:     unsupportedWebsiteTest,
-			expected: errWebsiteFlag,
+			expected: errUnsupportedFlag,
 			args: args{
 				input: "codyWebAPI search --website notsupported",
 			},
@@ -109,7 +109,7 @@ func Test_parseFlags(t *testing.T) {
 		{
 			name:          "flagNotSupported",
 			expected:      []string{"", ""},
-			expectedError: errUnsupportedFlag,
+			expectedError: errFlagNotSet,
 			args: args{
 				applicationCommand: "search",
 				input:              []string{"--novalue1", "--novalue2"},
@@ -152,6 +152,7 @@ func Test_parseFlags(t *testing.T) {
 			},
 		},
 	}
+	os.Chdir("..")
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
@@ -159,51 +160,6 @@ func Test_parseFlags(t *testing.T) {
 			if actual != tt.expectedError {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("Failed test %v", tt.name)
-			} else {
-				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
-			}
-		})
-	}
-}
-
-func Test_checkIfFlagIsSupported(t *testing.T) {
-	type args struct {
-		flag string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr error
-	}{
-		{
-			name: "flagIsNotSupported",
-			args: args{
-				flag: "unknown",
-			},
-			want:    false,
-			wantErr: errUnsupportedFlag,
-		},
-		{
-			name: "flagIsSupported",
-			args: args{
-				flag: "website",
-			},
-			want:    true,
-			wantErr: nil,
-		},
-	}
-	for _, tt := range tests {
-		log.Printf("[TEST]: %v has started\n", tt.name)
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := checkIfFlagIsSupported(tt.args.flag)
-			if err != tt.wantErr {
-				log.Printf("[TEST]: %v has failed\n\n", tt.name)
-				t.Errorf("checkIfFlagIsSupported() error = %v, wantErr %v\n", err, tt.wantErr)
-			}
-			if got != tt.want {
-				log.Printf("[TEST]: %v has failed\n\n", tt.name)
-				t.Errorf("checkIfFlagIsSupported() = %v, want %v\n", got, tt.want)
 			} else {
 				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 			}

@@ -97,7 +97,6 @@ func parseInput(input string) error {
 
 func parseFlags(command string, input []string) error {
 	var currentFlag, flagValue string
-	var newFlag flag
 	// If the first word isn't a flag, exit early.
 	if !strings.HasPrefix(input[0], "--") {
 		log.Printf("%v Flag not provided in %v", tools.FuncName(), input)
@@ -108,11 +107,6 @@ func parseFlags(command string, input []string) error {
 	for index, word := range input {
 		if strings.HasPrefix(word, "--") {
 			currentFlag = strings.Trim(word, "--")
-			if supported, _ := checkIfFlagIsSupported(currentFlag); !supported {
-				log.Printf("%v "+errUnsupportedFlag.Error(), tools.FuncName())
-				return errUnsupportedFlag
-			}
-			newFlag.flag = currentFlag
 			if index < len(input)-1 {
 				if strings.HasPrefix(input[index+1], "--") {
 					log.Printf("%v "+errFlagNotSet.Error(), tools.FuncName())
@@ -122,54 +116,38 @@ func parseFlags(command string, input []string) error {
 		} else {
 			flagValue = flagValue + " " + word
 			if len(input)-1 == index {
-				newFlag.flagValue = flagValue
-				if newFlag.flag == websiteFlag {
-					_, err := checkIfWebsiteIsSupported(flagValue)
-					if err != nil {
-						return errWebsiteFlag
-					}
+				if setParameters(currentFlag, strings.TrimSpace(flagValue), inputParams) != nil {
+					return errUnsupportedFlag
 				}
-				listOfFlags = append(listOfFlags, newFlag)
 				flagValue = ""
 			} else if index < len(input)-1 {
 				if strings.HasPrefix(input[index+1], "--") {
-					newFlag.flagValue = flagValue
-					if newFlag.flag == websiteFlag {
-						_, err := checkIfWebsiteIsSupported(flagValue)
-						if err != nil {
-							return errWebsiteFlag
-						}
+					if setParameters(currentFlag, strings.TrimSpace(flagValue), inputParams) != nil {
+						return errUnsupportedFlag
 					}
-					listOfFlags = append(listOfFlags, newFlag)
 					flagValue = ""
 				}
 			}
 		}
 	}
-	listOfFlags = nil
 	return nil
 }
 
 func setParameters(paramToset, paramValue string, inputParams inputParameters) error {
 	switch paramToset {
 	case "website":
+		_, err := checkIfWebsiteIsSupported(paramValue)
+		if err != nil {
+			return errWebsiteFlag
+		}
 		inputParams.website = paramValue
 	case "item":
 		inputParams.item = paramValue
 	default:
-		log.Printf("%v Unsupported parameter %v", tools.FuncName(), paramToset)
-		return errUnsupportedParam
+		log.Printf("%v Unsupported flag: %v value: %v, unable to set input parameters", tools.FuncName(), paramToset, paramValue)
+		return errUnsupportedFlag
 	}
 	return nil
-}
-
-func checkIfFlagIsSupported(flag string) (bool, error) {
-	flag = strings.TrimSpace(flag)
-	if _, flagSupported := supportedFlags[flag]; !flagSupported {
-		log.Printf("%v "+errFlagNotSet.Error(), tools.FuncName())
-		return false, errUnsupportedFlag
-	}
-	return true, nil
 }
 
 func checkIfWebsiteIsSupported(website string) (bool, error) {

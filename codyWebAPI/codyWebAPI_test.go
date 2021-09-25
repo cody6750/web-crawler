@@ -293,7 +293,17 @@ func Test_setParameters(t *testing.T) {
 			},
 			wantErr: nil,
 		},
+		{
+			name: "parameters not supported",
+			arg: args{
+				paramToSet: "not_supported",
+				paramValue: "amazon",
+				params:     inputParameters{},
+			},
+			wantErr: errUnsupportedFlag,
+		},
 	}
+	os.Chdir("..")
 	for _, tt := range test {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
@@ -305,5 +315,38 @@ func Test_setParameters(t *testing.T) {
 				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 			}
 		})
+	}
+}
+
+func Test_getWebsiteObject(t *testing.T) {
+	type args struct {
+		website string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    website.Website
+		wantErr error
+	}{
+		{
+			name: "create website object",
+			args: args{
+				website: "amazon",
+			},
+			want:    &amazon.Amazon{},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := getWebsiteObject(tt.args.website)
+			if err != tt.wantErr {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("getWebsiteObject() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+		log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 	}
 }

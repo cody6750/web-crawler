@@ -7,22 +7,24 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/cody6750/codywebapi/codyWebAPI/tools"
 )
 
 const (
-	websiteName string = "Amazon"
-	WebURL      string = "https://www.amazon.com/s?i=aps&k=RTX%203080&ref=nb_sb_noss_2&url=search-alias%3Daps"
+	WebsiteName string = "amazon"
 )
 
 //Amazon ... implements the Website Interface
 type Amazon struct {
-	Name string
+	WebsiteName string
+	Name        string
 }
 
 // Constructor ..
 func Constructor() Amazon {
 	var amazonObject = Amazon{}
-	amazonObject.Name = websiteName
+	amazonObject.Name = WebsiteName
 	amazonObject.InitWebsite()
 	return amazonObject
 }
@@ -30,7 +32,7 @@ func Constructor() Amazon {
 //InitWebsite ..
 func (amazonObject Amazon) InitWebsite() {
 	log.Println("Init website")
-	amazonObject.Name = websiteName
+	amazonObject.Name = WebsiteName
 }
 
 //PrintWebsite ..
@@ -38,12 +40,23 @@ func (amazonObject Amazon) PrintWebsite() {
 	log.Println("Amazon")
 }
 
+func generateSearchURL(item string) (string, error) {
+	if item == "" {
+		log.Printf("%v unable to call function, item is empty", tools.FuncName())
+		return item, nil
+	}
+	searchURL := "https://www.amazon.com/s?k=" + strings.ReplaceAll(item, " ", "+") + "&ref=nb_sb_noss_2"
+	log.Printf("%v successfully generated search URL %v", tools.FuncName(), searchURL)
+	return searchURL, nil
+}
+
 //SearchWebsite ..
 func (amazonObject Amazon) SearchWebsite(item string) {
 	if item == "" {
-		log.Fatalf("Item no provided, unable to search website %v", websiteName)
+		log.Printf("Item no provided, unable to search website %v", WebsiteName)
 		return
 	}
+	WebURL, _ := generateSearchURL(item)
 	resp, err := http.Get(WebURL)
 	if err != nil {
 		log.Fatalln(err)
@@ -57,17 +70,25 @@ func (amazonObject Amazon) SearchWebsite(item string) {
 	//Convert the body to type string
 	sb := string(body)
 	var items []string
-
+	var size string
 	for _, line := range strings.Split(sb, "<") {
-		if strings.Contains(line, `span class="a-size-medium a-color-base a-text-normal">`) {
-			//if strings.Contains(line, `data-image-index=`) {
-			line = strings.TrimPrefix(line, `span class="a-size-medium a-color-base a-text-normal">`)
-			fmt.Println(line)
+		//log.Printf(line)
+		if strings.Contains(line, `span class="a-size-medium a-color-base a-text-normal">`) || strings.Contains(line, `<span class="a-size-base-plus a-color-base a-text-normal">`) {
+			if strings.Contains(line, `span class="a-size-medium a-color-base a-text-normal">`) {
+				size = "medium"
+			}
+			if strings.Contains(line, `<span class="a-size-base-plus a-color-base a-text-normal">`) {
+				size = "base"
+			}
+
+			correctHTML := `span class="a-size-` + size + `medium a-color-base a-text-normal">`
+			line = strings.TrimPrefix(line, correctHTML)
+			log.Print(line)
 			items = append(items, line)
 		}
 	}
 
-	//writeToFile(sb)
+	writeToFile(sb)
 
 }
 

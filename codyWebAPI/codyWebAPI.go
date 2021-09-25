@@ -10,6 +10,7 @@ import (
 
 	"github.com/cody6750/codywebapi/codyWebAPI/tools"
 	"github.com/cody6750/codywebapi/codyWebAPI/website"
+	"github.com/cody6750/codywebapi/codyWebAPI/website/amazon"
 )
 
 const (
@@ -27,10 +28,6 @@ var (
 	applicationCommands map[string]string = map[string]string{
 		"search": "search",
 	}
-	supportedFlags map[string]struct{} = map[string]struct{}{
-		"website": {},
-		"item":    {},
-	}
 	errInput             error = errors.New("invalid Input")
 	errParseFlag         error = errors.New("error parsing flags")
 	errFlagNotSet        error = errors.New("error, flag not set")
@@ -40,6 +37,7 @@ var (
 	errWebsiteFlag       error = errors.New("error, unsupported website")
 	listOfFlags          []flag
 	inputParams          inputParameters
+	test                 inputParameters
 )
 
 type inputParameters struct {
@@ -66,6 +64,10 @@ func initializeComponent() {
 	for scanner.Scan() {
 		if parseInput(scanner.Text()) != nil {
 			log.Printf("%v Failed to call parseInput()", tools.FuncName())
+		}
+		if test.website != "" {
+			website, _ := getWebsiteObject(test.website)
+			callWebsiteFunction(applicationCommand, website, test)
 		}
 	}
 }
@@ -116,13 +118,15 @@ func parseFlags(command string, input []string) error {
 		} else {
 			flagValue = flagValue + " " + word
 			if len(input)-1 == index {
-				if setParameters(currentFlag, strings.TrimSpace(flagValue), inputParams) != nil {
+				err := setParameters(currentFlag, strings.TrimSpace(flagValue), test)
+				if err != nil {
 					return errUnsupportedFlag
 				}
 				flagValue = ""
 			} else if index < len(input)-1 {
 				if strings.HasPrefix(input[index+1], "--") {
-					if setParameters(currentFlag, strings.TrimSpace(flagValue), inputParams) != nil {
+					err := setParameters(currentFlag, strings.TrimSpace(flagValue), test)
+					if err != nil {
 						return errUnsupportedFlag
 					}
 					flagValue = ""
@@ -140,9 +144,9 @@ func setParameters(paramToset, paramValue string, inputParams inputParameters) e
 		if err != nil {
 			return errWebsiteFlag
 		}
-		inputParams.website = paramValue
+		test.website = paramValue
 	case "item":
-		inputParams.item = paramValue
+		test.item = paramValue
 	default:
 		log.Printf("%v Unsupported flag: %v value: %v, unable to set input parameters", tools.FuncName(), paramToset, paramValue)
 		return errUnsupportedFlag
@@ -164,6 +168,15 @@ func checkIfWebsiteIsSupported(website string) (bool, error) {
 	}
 	log.Printf("%v "+errWebsiteFlag.Error()+" : %v", tools.FuncName(), website)
 	return false, errWebsiteFlag
+}
+
+func getWebsiteObject(website string) (website.Website, error) {
+	switch website {
+	case amazon.WebsiteName:
+		return &amazon.Amazon{}, nil
+	default:
+		return nil, errWebsiteFlag
+	}
 }
 
 func callWebsiteFunction(functionToCall string, websiteToCall website.Website, params inputParameters) error {

@@ -35,7 +35,6 @@ var (
 	errUnsupportedFlag   error = errors.New("error, unsupported flag")
 	errUnsupportedParam  error = errors.New("error, unsupported parameter")
 	errWebsiteFlag       error = errors.New("error, unsupported website")
-	listOfFlags          []flag
 	inputParams          inputParameters
 	test                 inputParameters
 )
@@ -43,11 +42,6 @@ var (
 type inputParameters struct {
 	website string
 	item    string
-}
-
-type flag struct {
-	flag      string
-	flagValue string
 }
 
 //Run ...
@@ -189,21 +183,6 @@ func callWebsiteFunction(functionToCall string, websiteToCall website.Website, p
 	}
 	return nil
 }
-
-// func getWebsiteFromFlags() {
-// 	log.Printf("%v Attempting to get website from flags", tools.FuncName())
-// 	switch applicationWebsite {
-// 	case amazonFlag:
-// 		w := amazon.Constructor()
-// 		//t := &amazon.Amazon{}
-// 		//invokeAmazonActions(w)
-// 		//invokeAmazonActions(t)
-// 	case bestbuyFlag:
-// 		log.Printf("Not implemented yet")
-// 	default:
-// 		log.Fatalf("%v Failed to complete function, website %s is not supported", tools.FuncName(), applicationWebsite)
-// 	}
-// }
 
 func shutDown() {
 	log.Printf("Exiting Program")

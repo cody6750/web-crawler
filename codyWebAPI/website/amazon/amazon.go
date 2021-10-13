@@ -51,10 +51,11 @@ func generateSearchURL(item string) (string, error) {
 }
 
 //SearchWebsite ..
-func (amazonObject Amazon) SearchWebsite(item string) {
+func (amazonObject Amazon) SearchWebsite(item string) ([]string, error) {
+	var items []string
 	if item == "" {
 		log.Printf("Item no provided, unable to search website %v", WebsiteName)
-		return
+		return items, nil
 	}
 	WebURL, _ := generateSearchURL(item)
 	resp, err := http.Get(WebURL)
@@ -69,27 +70,21 @@ func (amazonObject Amazon) SearchWebsite(item string) {
 	}
 	//Convert the body to type string
 	sb := string(body)
-	var items []string
-	var size string
 	for _, line := range strings.Split(sb, "<") {
-		//log.Printf(line)
-		if strings.Contains(line, `span class="a-size-medium a-color-base a-text-normal">`) || strings.Contains(line, `<span class="a-size-base-plus a-color-base a-text-normal">`) {
-			if strings.Contains(line, `span class="a-size-medium a-color-base a-text-normal">`) {
-				size = "medium"
-			}
-			if strings.Contains(line, `<span class="a-size-base-plus a-color-base a-text-normal">`) {
-				size = "base"
-			}
-
-			correctHTML := `span class="a-size-` + size + `medium a-color-base a-text-normal">`
+		if strings.Contains(line, `a-color-base a-text-normal">`) {
+			aSize := strings.TrimPrefix(line, `span class="a-size-`)
+			aSizeSplitString := strings.SplitAfter(aSize, " ")
+			aSize = aSizeSplitString[0]
+			correctHTML := `span class="a-size-` + aSize + `a-color-base a-text-normal">`
 			line = strings.TrimPrefix(line, correctHTML)
-			log.Print(line)
-			items = append(items, line)
+			if line != "" {
+				items = append(items, line)
+				log.Printf("%v : %v", correctHTML, line)
+			}
 		}
 	}
-
-	writeToFile(sb)
-
+	//writeToFile(sb)
+	return items, nil
 }
 
 func writeToFile(body string) {

@@ -3,5 +3,5 @@ package website
 //Website ..
 type Website interface {
 	InitWebsite()
-	SearchWebsite(item string)
+	SearchWebsite(item string) ([]string, error)
 }

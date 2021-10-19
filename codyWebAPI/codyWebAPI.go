@@ -167,7 +167,7 @@ func checkIfWebsiteIsSupported(website string) (bool, error) {
 func getWebsiteObject(website string) (website.Website, error) {
 	switch website {
 	case amazon.WebsiteName:
-		return &amazon.Amazon{}, nil
+		return amazon.New(), nil
 	default:
 		return nil, errWebsiteFlag
 	}

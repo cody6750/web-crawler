@@ -56,14 +56,14 @@ func TestAmazon_SearchWebsite(t *testing.T) {
 	}{
 		{
 			name:         "search for RTX",
-			amazonObject: Amazon{Name: "1"},
+			amazonObject: Amazon{Name: "6"},
 			args:         args{item: "RTX 3080"},
 			want:         nil,
 		},
 		{
 			name:         "search for snowboard",
 			amazonObject: Amazon{Name: "2"},
-			args:         args{item: "board"},
+			args:         args{item: "Girl Clothes"},
 			want:         nil,
 		},
 	}

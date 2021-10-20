@@ -60,12 +60,12 @@ func TestAmazon_SearchWebsite(t *testing.T) {
 			args:         args{item: "RTX 3080"},
 			want:         nil,
 		},
-		{
-			name:         "search for snowboard",
-			amazonObject: Amazon{Name: "2"},
-			args:         args{item: "Girl Clothes"},
-			want:         nil,
-		},
+		// {
+		// 	name:         "search for snowboard",
+		// 	amazonObject: Amazon{Name: "2"},
+		// 	args:         args{item: "Girl Clothes"},
+		// 	want:         nil,
+		// },
 	}
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)

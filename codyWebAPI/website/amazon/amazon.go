@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -65,7 +66,7 @@ func generateSearchURL(item string) (string, error) {
 	}
 	searchURL := "https://www.amazon.com/s?k=" + strings.ReplaceAll(item, " ", "+") + "&ref=nb_sb_noss_2"
 	//searchURL := "https://www.google.com/search?q=RTX+3080&hl=en&sxsrf=AOaemvKDvMp_Dp95q3Mbd5I-f8xfuHHlaQ%3A1634414248578&source=hp&ei=qC5rYcraIOCXr7wP5q-VmAk&iflsig=ALs-wAMAAAAAYWs8uAtN0F-7iIy_fsMottIa6a9orwQh&ved=0ahUKEwjKzszF28_zAhXgy4sBHeZXBZMQ4dUDCAk&uact=5&oq=RTX+3080&gs_lcp=Cgdnd3Mtd2l6EAMyBAgjECcyBAgjECcyBAgjECcyBwguELEDEEMyDQgAEIAEEIcCELEDEBQyCAgAEIAEELEDMgQIABBDMgUIABCABDIFCAAQgAQyCAgAEIAEELEDOgQILhBDOg0ILhCxAxDHARDRAxBDOgcIABCxAxBDOgoIABCxAxDJAxBDOgoIABCABBCHAhAUUI39O1jPhDxgtIU8aABwAHgAgAGgA4gB8AuSAQcyLTMuMS4xmAEAoAEB&sclient=gws-wiz"
-	//log.Printf("%v successfully generated search URL %v", tools.FuncName(), searchURL)
+	log.Printf("%v successfully generated search URL %v", tools.FuncName(), searchURL)
 	return searchURL, nil
 }
 
@@ -113,7 +114,7 @@ func (amazonObject Amazon) SearchWebsite(item string) ([]string, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	request.Header.Set("CodyScraperBot", "This bot just searches amazon for a product")
+	request.Header.Set("User-Agent", "This bot just searches amazon for a product")
 
 	// Make request
 	response, err := client.Do(request)
@@ -186,18 +187,18 @@ func (amazonObject Amazon) SearchWebsite(item string) ([]string, error) {
 		}
 
 	}
-	// resp, err = http.Get(WebURL)
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// //We Read the response body on the line below.
-	// body, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// //Convert the body to type string
-	// sb := string(body)
-	// writeToFile(sb)
+	resp, err := http.Get(WebURL)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//Convert the body to type string
+	sb := string(body)
+	writeToFile(sb)
 	return items, nil
 }
 

@@ -3,6 +3,8 @@ package webcrawler
 import (
 	"net/http"
 	"time"
+
+	"github.com/cody6750/webCrawler/webScraper"
 )
 
 //WebCrawler ...
@@ -23,5 +25,5 @@ func (WebCrawler) New() *WebCrawler {
 }
 
 //Crawl ...
-func (WebCrawler) Crawl(url string, scraper WebScraper) {
+func (WebCrawler) Crawl(url string, scraper webScraper.WebScraper) {
 }

@@ -143,6 +143,7 @@ func (amazonObject Amazon) SearchWebsite(item string) ([]string, error) {
 				}
 				// Used to obtain item title and price from the span tags, using class attirbute values.
 				if strings.Contains(attributeValue, itemTitleHTMLAttributeValue) || strings.Contains(attributeValue, itemPriceHTMLAttributeValue) {
+					//fmt.Print(t.Attr)
 					correctText = true
 				}
 			} else if t.Data == aHTMLTag {

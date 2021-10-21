@@ -34,40 +34,58 @@ func New() *WebScraper {
 func (WebScraper) Scrape(url string, client *http.Client, htmlLinkConfig ...ExtractHtmlLinkConfig) ([]string, error) {
 	var (
 		TagsToCheck map[string]bool
+		URLsToCheck map[string]bool
 	)
+	URLsToCheck = make(map[string]bool)
+	//GET request to domain for HTML response
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Set header as User-Agent so the server admins don't block our IP address from HTTP requests
 	request.Header.Set("User-Agent", "This bot just searches amazon for a product")
 
-	// Make request
+	// Make HTTP request
 	response, err := client.Do(request)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer response.Body.Close()
+
+	// Parse HTML response by turning it into Tokens
 	z := html.NewTokenizer(response.Body)
 
-	// If htmlLinkConfig is provided, create a map to search for supported Tags with constant time O(1).
+	// If htmlLinkConfig parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
 	if !isEmpty(htmlLinkConfig) {
 		TagsToCheck, err = createMapToCheckTags(htmlLinkConfig)
 		if err != nil {
 			return nil, nil
 		}
 	}
+	// This while loop parses through all of the tokens generated for the HTML response.
 	for {
+		//Iterate through each token
 		tt := z.Next()
+		// For every token, we check the token type. We parse URL from the start token.
 		switch {
 		case tt == html.StartTagToken:
 			t := z.Token()
-			if _, tagExist := TagsToCheck[t.Data]; !isEmpty(htmlLinkConfig) && tagExist {
-				for _, htmlLinkConfig := range htmlLinkConfig {
-					extractURLWithHTMLLinkConfig(t, htmlLinkConfig)
+			// If an htmlLinkConfig is provided and the current tags is one of the tags that are required to be checked, determine if the token meets the requirements
+			// by checing for the required attribute and attribute value
+			if !isEmpty(htmlLinkConfig) {
+				if _, tagExist := TagsToCheck[t.Data]; tagExist {
+					for _, htmlLinkConfig := range htmlLinkConfig {
+						url, _ := extractURLWithHTMLLinkConfig(t, htmlLinkConfig)
+						if url != "" && !isDuplicateURL(url, URLsToCheck) {
+							log.Printf("URL: %v ", url)
+						}
+					}
 				}
 			} else {
+				//If an htmlLink is not provided, scrape all href attributes for URLs
 				extractURLWithHTMLToken(t)
 			}
+		// This is our break statement
 		case tt == html.ErrorToken:
 			return nil, nil
 		}
@@ -86,14 +104,16 @@ func createMapToCheckTags(htmlLinkconfig []ExtractHtmlLinkConfig) (map[string]bo
 
 func extractURLWithHTMLLinkConfig(token html.Token, htmlLinkConfig ExtractHtmlLinkConfig) (string, error) {
 	if htmlLinkConfig.isEmpty() {
+		log.Print("is empty")
 		return "", errors.New("Empty struct")
 	}
 	if token.Data == "" {
+		log.Print("is empty1")
 		return "", errors.New("")
 	}
-	if HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, htmlLinkConfig.AttributeToCheck); strings.Contains(HTTPAttributeValueFromToken, htmlLinkConfig.AttributeValueToCheck) {
+	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, htmlLinkConfig.AttributeToCheck)
+	if strings.Contains(HTTPAttributeValueFromToken, htmlLinkConfig.AttributeValueToCheck) {
 		hrefValue, _ := getHTTPAttributeValueFromToken(token, "href")
-		//log.Printf("HREF URL: %v\n TOKEN ATTR: %v", hrefValue, token.Attr)
 		return hrefValue, nil
 	}
 	return "", errors.New("")
@@ -107,7 +127,6 @@ func extractURLWithHTMLToken(token html.Token) (string, error) {
 	if attributeValue == "" {
 		return attributeValue, errors.New("TODO")
 	}
-	log.Printf("HREF URL: %v", attributeValue)
 	return attributeValue, error
 }
 
@@ -118,7 +137,7 @@ func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (at
 	for _, a := range token.Attr {
 		if a.Key == attributeToGet {
 			attributeValue = a.Val
-			break
+			return attributeValue, nil
 		}
 	}
 	if attributeValue == "" {
@@ -138,5 +157,13 @@ func isEmpty(e []ExtractHtmlLinkConfig) bool {
 	if len(e) == 0 {
 		return true
 	}
+	return false
+}
+
+func isDuplicateURL(url string, URLsToCheck map[string]bool) bool {
+	if _, urlExist := URLsToCheck[url]; urlExist {
+		return true
+	}
+	URLsToCheck[url] = true
 	return false
 }

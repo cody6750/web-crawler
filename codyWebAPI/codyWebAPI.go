@@ -188,3 +188,8 @@ func shutDown() {
 	log.Printf("Exiting Program")
 	os.Exit(1)
 }
+
+//... PrintHello
+func PrintHello() {
+	log.Printf("hello")
+}

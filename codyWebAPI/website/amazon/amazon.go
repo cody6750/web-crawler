@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -187,18 +186,18 @@ func (amazonObject Amazon) SearchWebsite(item string) ([]string, error) {
 		}
 
 	}
-	resp, err := http.Get(WebURL)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	//Convert the body to type string
-	sb := string(body)
-	writeToFile(sb)
+	// resp, err := http.Get(WebURL)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// //We Read the response body on the line below.
+	// body, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// //Convert the body to type string
+	// sb := string(body)
+	// writeToFile(sb)
 	return items, nil
 }
 

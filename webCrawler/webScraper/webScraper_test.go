@@ -1,0 +1,359 @@
+package webscraper
+
+import (
+	"log"
+	"testing"
+
+	"golang.org/x/net/html"
+)
+
+func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
+	type args struct {
+		token     html.Token
+		urlConfig ExtractURLFromHTMLConfiguration
+	}
+	tests := []struct {
+		name               string
+		args               args
+		wantAttributeValue string
+		wantErr            error
+	}{
+		{
+			name: "Extract URL from HTML Using Configuration",
+			args: args{
+				token: html.Token{
+					Data: "span",
+					Attr: []html.Attribute{
+						{Key: "class", Val: "a-link-normal"},
+						{Key: "href", Val: "amazon.com"},
+					},
+				},
+				urlConfig: ExtractURLFromHTMLConfiguration{
+					TagToCheck:            "",
+					AttributeToCheck:      "class",
+					AttributeValueToCheck: "a-link-normal",
+				},
+			},
+			wantAttributeValue: "amazon.com",
+			wantErr:            nil,
+		},
+		// {
+		// 	name: "Extract wrong URL from HTML Using Configuration",
+		// 	args: args{
+		// 		token: html.Token{
+		// 			Attr: []html.Attribute{
+		// 				{Key: "class", Val: "a-link-normals"},
+		// 			},
+		// 		},
+		// 	},
+		// 	wantAttributeValue: "a-link-normal",
+		// 	wantErr:            nil,
+		// },
+	}
+
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractURLFromHTMLUsingConfiguration(tt.args.token, tt.args.urlConfig)
+			if got != tt.wantAttributeValue {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("extractURLFromHTMLUsingConfiguration() = %v, want %v", got, tt.wantAttributeValue)
+				return
+			}
+			if err != tt.wantErr {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("extractURLFromHTMLUsingConfiguration() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+
+		})
+	}
+}
+
+func Test_getHTTPAttributeValueFromToken(t *testing.T) {
+	type args struct {
+		token          html.Token
+		attributeToGet string
+	}
+	tests := []struct {
+		name               string
+		args               args
+		wantAttributeValue string
+		wantErr            error
+	}{
+		{
+			name: "Get HTTP Attribute",
+			args: args{
+				token: html.Token{
+					Attr: []html.Attribute{
+						{Key: "class", Val: "a-link-normal"},
+					},
+				},
+				attributeToGet: "class",
+			},
+			wantAttributeValue: "a-link-normal",
+			wantErr:            nil,
+		},
+		{
+			name: "Get Wrong HTTP Attribute",
+			args: args{
+				token: html.Token{
+					Attr: []html.Attribute{
+						{Key: "class", Val: "a-link-normals"},
+					},
+				},
+				attributeToGet: "class",
+			},
+			wantAttributeValue: "a-link-normal",
+			wantErr:            nil,
+		},
+	}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			gotAttributeValue, err := getHTTPAttributeValueFromToken(tt.args.token, tt.args.attributeToGet)
+			if gotAttributeValue != tt.wantAttributeValue {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("getHTTPAttributeValueFromToken() = %v, want %v", gotAttributeValue, tt.wantAttributeValue)
+				return
+			}
+			if err != tt.wantErr {
+				t.Errorf("getHTTPAttributeValueFromToken() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			log.Printf("isEmptyScrapeConfiguration() = %v, want %v", gotAttributeValue, tt.wantAttributeValue)
+			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+		})
+	}
+}
+
+func Test_formatURL(t *testing.T) {
+	type args struct {
+		url             string
+		formatURLConfig FormatURLConfiguration
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr error
+	}{
+		{
+			name: "Formated correctly",
+			args: args{
+				url: "ReplacePrefix/RTX_3070/ReplaceSuffix",
+				formatURLConfig: FormatURLConfiguration{
+					SuffixToAdd:      "checkout",
+					SuffixToRemove:   "ReplaceSuffix",
+					PrefixToAdd:      "amazon.com",
+					PrefixToRemove:   "ReplacePrefix",
+					ReplaceOldString: "RTX_3070",
+					ReplaceNewString: "RTX_3080",
+				},
+			},
+			want:    "amazon.com/RTX_3080/checkout",
+			wantErr: nil,
+		},
+		{
+			name: "Formated incorrectly",
+			args: args{
+				url: "ReplaceSuffix/RTX_3070/ReplacePrefix",
+				formatURLConfig: FormatURLConfiguration{
+					SuffixToAdd:      "DOESNOTWORK",
+					SuffixToRemove:   "DOESNOTWORK",
+					PrefixToAdd:      "DOESNOTWORK",
+					PrefixToRemove:   "DOESNOTWORK",
+					ReplaceOldString: "DOESNOTWORK",
+					ReplaceNewString: "DOESNOTWORK",
+				},
+			},
+			want:    "",
+			wantErr: errFormatURL,
+		},
+	}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := formatURL(tt.args.url, tt.args.formatURLConfig)
+			if err != tt.wantErr {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("formatURL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("formatURL() = %v, want %v", got, tt.want)
+				return
+			}
+			log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+		})
+	}
+}
+
+func Test_isEmptyFormatURLConfiguration(t *testing.T) {
+	type args struct {
+		formatURLConfiguration FormatURLConfiguration
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Is empty",
+			want: true,
+			args: args{
+				formatURLConfiguration: FormatURLConfiguration{},
+			},
+		},
+		{
+			name: "Is not empty",
+			want: false,
+			args: args{
+				formatURLConfiguration: FormatURLConfiguration{
+					SuffixToRemove: "not empty",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isEmptyFormatURLConfiguration(tt.args.formatURLConfiguration); got != tt.want {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("isEmptyFormatURLConfiguration() = %v, want %v", got, tt.want)
+			} else {
+				log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+			}
+		})
+	}
+}
+
+func Test_isEmptyExtractURLFromHTMLConfiguration(t *testing.T) {
+	type args struct {
+		extractURLFromHTMLConfiguration ExtractURLFromHTMLConfiguration
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Is empty",
+			args: args{
+				extractURLFromHTMLConfiguration: ExtractURLFromHTMLConfiguration{},
+			},
+			want: true,
+		},
+		{
+			name: "Is not empty",
+			args: args{
+				extractURLFromHTMLConfiguration: ExtractURLFromHTMLConfiguration{
+					AttributeToCheck: "hi",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isEmptyExtractURLFromHTMLConfiguration(tt.args.extractURLFromHTMLConfiguration); got != tt.want {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("isEmptyExtractURLFromHTMLConfiguration() = test name:%v ,%v, want %v", tt.name, got, tt.want)
+			} else {
+				log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+			}
+		})
+	}
+}
+
+func Test_isEmptyScrapeConfiguration(t *testing.T) {
+	type args struct {
+		s []ScrapeConfiguration
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Not empty scrap configuration slice",
+			args: args{
+				s: []ScrapeConfiguration{
+					{
+						ConfigurationName:               "",
+						ExtractURLFromHTMLConfiguration: ExtractURLFromHTMLConfiguration{},
+						FormatURLConfiguration:          FormatURLConfiguration{},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Empty scrap configuration slice",
+			args: args{},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isEmptyScrapeConfiguration(tt.args.s); got != tt.want {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+			} else {
+				log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+			}
+		})
+	}
+}
+
+func Test_isDuplicateURL(t *testing.T) {
+	type args struct {
+		url         string
+		URLsToCheck map[string]bool
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Has Duplicate Url",
+			args: args{
+				url: "exist",
+				URLsToCheck: map[string]bool{
+					"exist": true,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Has No Duplicate Url",
+			args: args{
+				url:         "does not exist",
+				URLsToCheck: map[string]bool{},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isDuplicateURL(tt.args.url, tt.args.URLsToCheck); got != tt.want {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("isDuplicateURL() = %v, want %v", got, tt.want)
+			} else {
+				log.Printf("isDuplicateURL() = %v, want %v", got, tt.want)
+				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+			}
+		})
+	}
+}

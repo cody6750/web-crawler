@@ -7,5 +7,5 @@ import (
 
 func main() {
 	codywebapi.PrintHello()
-	webcrawler.Main()
+	webcrawler.Run()
 }

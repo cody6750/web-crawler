@@ -37,18 +37,25 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 			wantAttributeValue: "amazon.com",
 			wantErr:            nil,
 		},
-		// {
-		// 	name: "Extract wrong URL from HTML Using Configuration",
-		// 	args: args{
-		// 		token: html.Token{
-		// 			Attr: []html.Attribute{
-		// 				{Key: "class", Val: "a-link-normals"},
-		// 			},
-		// 		},
-		// 	},
-		// 	wantAttributeValue: "a-link-normal",
-		// 	wantErr:            nil,
-		// },
+		{
+			name: "Fail to Extract URL from HTML Using Configuration",
+			args: args{
+				token: html.Token{
+					Data: "span",
+					Attr: []html.Attribute{
+						{Key: "class", Val: "a-link-normal"},
+						{Key: "href", Val: "amazon.com"},
+					},
+				},
+				urlConfig: ExtractURLFromHTMLConfiguration{
+					TagToCheck:            "",
+					AttributeToCheck:      "class",
+					AttributeValueToCheck: "not it sis",
+				},
+			},
+			wantAttributeValue: "",
+			wantErr:            errExtractURLFromHTMLUsingConfiguration,
+		},
 	}
 
 	for _, tt := range tests {
@@ -65,6 +72,61 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 				t.Errorf("extractURLFromHTMLUsingConfiguration() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
+
+		})
+	}
+}
+
+func Test_extractURLFromHTML(t *testing.T) {
+	type args struct {
+		token html.Token
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantURL string
+		wantErr error
+	}{
+		{
+			name: "Get HTTP Attribute",
+			args: args{
+				token: html.Token{
+
+					Attr: []html.Attribute{
+						{Key: "class", Val: "a-link-normal"},
+						{Key: "href", Val: "amazon.com"},
+					},
+				},
+			},
+			wantURL: "amazon.com",
+			wantErr: nil,
+		},
+		{
+			name: "Get Wrong HTTP Attribute",
+			args: args{
+				token: html.Token{
+					Attr: []html.Attribute{
+						{Key: "class", Val: "a-link-normals"},
+					},
+				},
+			},
+			wantURL: "",
+			wantErr: errExtractURLFromHTML,
+		}}
+	for _, tt := range tests {
+		log.Printf("[TEST]: %v has started\n", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractURLFromHTML(tt.args.token)
+			if got != tt.wantURL {
+				log.Printf("[TEST]: %v has failed\n\n", tt.name)
+				t.Errorf("extractURLFromHTML() = %v, want %v", got, tt.wantURL)
+			}
+			if err != tt.wantErr {
+				t.Errorf("extractURLFromHTML() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			log.Printf("extractURLFromHTML() = %v, want %v", got, tt.wantURL)
 			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 
 		})

@@ -51,9 +51,8 @@ func New() *WebCrawler {
 // }
 
 //Crawl ...
-func (w WebCrawler) Crawl(url string, htmlURLConfig ...webscraper.ExtractURLFromHTMLConfiguration) {
-	w.scraper.Scrape(url, w.client)
-	// w.scraper.Scrape(url, w.client,
+func (w WebCrawler) Crawl(url string, ScrapeConfiguration ...webscraper.ScrapeConfiguration) ([]string, error) {
+	// list, _ := w.scraper.Scrape(url, w.client,
 	// 	webscraper.ScrapeConfiguration{
 	// 		ExtractURLFromHTMLConfiguration: webscraper.ExtractURLFromHTMLConfiguration{
 	// 			AttributeToCheck:      "class",
@@ -75,6 +74,8 @@ func (w WebCrawler) Crawl(url string, htmlURLConfig ...webscraper.ExtractURLFrom
 	// 		},
 	// 	},
 	// )
+	list, _ := w.scraper.Scrape(url, w.client, ScrapeConfiguration...)
+	return list, nil
 }
 
 //Run ...

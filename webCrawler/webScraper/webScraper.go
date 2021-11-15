@@ -14,8 +14,10 @@ const (
 )
 
 var (
-	errFormatURL      error = errors.New("")
-	errEmptyParameter error = errors.New("")
+	errFormatURL                            error = errors.New("")
+	errEmptyParameter                       error = errors.New("")
+	errExtractURLFromHTMLUsingConfiguration error = errors.New("")
+	errExtractURLFromHTML                   error = errors.New("")
 )
 
 //WebScraper ...
@@ -54,7 +56,6 @@ func New() *WebScraper {
 
 //Scrape ..
 func (WebScraper) Scrape(url string, client *http.Client, scrapeConfiguration ...ScrapeConfiguration) ([]string, error) {
-	//func (WebScraper) Scrape(url string, client *http.Client, formatURLConfig []FormatURLConfiguration, htmlURLConfiguration ...ExtractURLFromHTMLConfiguration) ([]string, error) {
 	var (
 		ExtractedURLs []string
 		TagsToCheck   map[string]bool
@@ -102,6 +103,7 @@ func (WebScraper) Scrape(url string, client *http.Client, scrapeConfiguration ..
 			if isEmptyScrapeConfiguration(scrapeConfiguration) {
 				ExtractedURL, _ = extractURLFromHTML(t)
 				if ExtractedURL != "" && !isDuplicateURL(ExtractedURL, URLsToCheck) {
+					log.Default().Printf("Extracted url: %v", ExtractedURL)
 					ExtractedURLs = append(ExtractedURLs, ExtractedURL)
 				}
 			} else {
@@ -109,14 +111,12 @@ func (WebScraper) Scrape(url string, client *http.Client, scrapeConfiguration ..
 					if !isEmptyExtractURLFromHTMLConfiguration(scrapeConfiguration.ExtractURLFromHTMLConfiguration) {
 						if _, tagExist := TagsToCheck[t.Data]; tagExist {
 							ExtractedURL, _ = extractURLFromHTMLUsingConfiguration(t, scrapeConfiguration.ExtractURLFromHTMLConfiguration)
-							if ExtractedURL == "" {
-								// log.Print(scrapeConfiguration.ExtractURLFromHTMLConfiguration)
-								// log.Print(t.Data, t.Attr, "\n")
-								continue
-							}
 						}
 					} else {
 						ExtractedURL, _ = extractURLFromHTML(t)
+					}
+					if ExtractedURL == "" {
+						continue
 					}
 					if !isEmptyFormatURLConfiguration(scrapeConfiguration.FormatURLConfiguration) {
 						formatedURL, err := formatURL(ExtractedURL, scrapeConfiguration.FormatURLConfiguration)
@@ -145,7 +145,7 @@ func (WebScraper) Scrape(url string, client *http.Client, scrapeConfiguration ..
 func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractURLFromHTMLConfiguration) (string, error) {
 	if isEmptyExtractURLFromHTMLConfiguration(urlConfig) {
 		log.Print("is empty")
-		return "", errors.New("Empty struct")
+		return "", errExtractURLFromHTMLUsingConfiguration
 	}
 	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, urlConfig.AttributeToCheck)
 	if strings.Contains(HTTPAttributeValueFromToken, urlConfig.AttributeValueToCheck) {
@@ -153,22 +153,22 @@ func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractURL
 		hrefValue, _ := getHTTPAttributeValueFromToken(token, "href")
 		return hrefValue, nil
 	}
-	return "", errors.New("")
+	return "", errExtractURLFromHTMLUsingConfiguration
 }
 
 func extractURLFromHTML(token html.Token) (string, error) {
-	if token.Data == "" {
+	if isEmptyToken(token) {
 		log.Print("is empty1")
-		return "", errors.New("")
+		return "", errExtractURLFromHTML
 	}
 	hrefValue, error := getHTTPAttributeValueFromToken(token, "href")
 	if error != nil {
-		return "", error
+		return "", errExtractURLFromHTML
 	}
 	if hrefValue == "" {
-		return hrefValue, errors.New("TODO")
+		return hrefValue, errExtractURLFromHTML
 	}
-	return hrefValue, error
+	return hrefValue, nil
 }
 
 func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {
@@ -211,6 +211,12 @@ func formatURL(url string, formatURLConfig FormatURLConfiguration) (string, erro
 	return url, nil
 }
 
+func isEmptyToken(token html.Token) bool {
+	if token.Data == "" && len(token.Attr) == 0 {
+		return true
+	}
+	return false
+}
 func isEmptyFormatURLConfiguration(formatURLConfiguration FormatURLConfiguration) bool {
 	if formatURLConfiguration == (FormatURLConfiguration{}) {
 		return true

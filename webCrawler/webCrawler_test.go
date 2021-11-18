@@ -41,13 +41,26 @@ func TestWebCrawler_Crawl(t *testing.T) {
 			w:    crawl,
 			args: args{
 				url: "https://www.google.com/search?q=RTX+3080&rlz=1C1CHBF_enUS724US724&oq=RTX+3080&aqs=chrome.0.69i59j69i60l3j69i65.1086j0j15&sourceid=chrome&ie=UTF-8",
-				// ScrapeConfiguration: []webscraper.ScrapeConfiguration{
-				// 	{
-				// 		ExtractURLFromHTMLConfiguration: webscraper.ExtractURLFromHTMLConfiguration{
-				// 			TagToCheck: "a",
-				// 		},
-				// 	},
-				// },
+				ScrapeConfiguration: []webscraper.ScrapeConfiguration{
+					{
+						ExtractURLFromHTMLConfiguration: webscraper.ExtractURLFromHTMLConfiguration{
+							TagToCheck: "a",
+						},
+						FormatURLConfiguration: webscraper.FormatURLConfiguration{
+							PrefixExist:    "/url?q=",
+							PrefixToRemove: "/url?q=",
+						},
+					},
+					{
+						ExtractURLFromHTMLConfiguration: webscraper.ExtractURLFromHTMLConfiguration{
+							TagToCheck: "a",
+						},
+						FormatURLConfiguration: webscraper.FormatURLConfiguration{
+							PrefixExist: "/search",
+							PrefixToAdd: " https://www.google.com",
+						},
+					},
+				},
 			},
 		},
 	}

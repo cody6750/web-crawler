@@ -1,4 +1,4 @@
-package webscraper
+package webcrawler
 
 import (
 	"log"
@@ -29,7 +29,7 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 					},
 				},
 				urlConfig: ExtractURLFromHTMLConfiguration{
-					TagToCheck:            "",
+					TagToCheck:            "span",
 					AttributeToCheck:      "class",
 					AttributeValueToCheck: "a-link-normal",
 				},

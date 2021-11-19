@@ -1,12 +1,15 @@
 package webcrawler
 
 import (
+	"log"
+
 	webscraper "github.com/cody6750/codywebapi/webCrawler/webScraper"
 )
 
 //WebCrawler ...
 type WebCrawler struct {
-	scraper *webscraper.WebScraper
+	scraper        *webscraper.WebScraper
+	listOfWebsites []string
 }
 
 //New ...
@@ -21,13 +24,17 @@ func New() *WebCrawler {
 }
 
 //Crawl ...
-func (w WebCrawler) Crawl(url string, ScrapeConfiguration ...webscraper.ScrapeConfiguration) ([]string, error) {
+func (w WebCrawler) Crawl(url string, depth int, ScrapeConfiguration ...webscraper.ScrapeConfiguration) ([]string, error) {
 	list, _ := w.scraper.Scrape(url, ScrapeConfiguration...)
-	return list, nil
-}
+	depth--
+	if depth < 0 {
+		for _, url := range list {
+			result, _ := w.Crawl(url, depth, ScrapeConfiguration...)
+			w.listOfWebsites = append(w.listOfWebsites, result...)
 
-//Run ...
-func Run() {
-	crawl := New()
-	crawl.Crawl("https://www.amazon.com/s?k=RTX+3080&ref=nb_sb_noss_2")
+		}
+	} else {
+		log.Print(w.listOfWebsites)
+	}
+	return list, nil
 }

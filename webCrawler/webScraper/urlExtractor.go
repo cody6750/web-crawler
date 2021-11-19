@@ -8,6 +8,10 @@ import (
 	"golang.org/x/net/html"
 )
 
+const (
+	hrefAttribute string = "href"
+)
+
 //ExtractURL ...
 func ExtractURL(t html.Token, URLsToCheck map[string]bool, ExtractedURLs []string) (string, error) {
 	ExtractedURL, _ := extractURLFromHTML(t)
@@ -61,7 +65,7 @@ func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractURL
 	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, urlConfig.AttributeToCheck)
 	if strings.Contains(HTTPAttributeValueFromToken, urlConfig.AttributeValueToCheck) {
 		//log.Printf("Got attribute %v, Value %v", urlConfig.AttributeToCheck, HTTPAttributeValueFromToken)
-		hrefValue, _ := getHTTPAttributeValueFromToken(token, "href")
+		hrefValue, _ := getHTTPAttributeValueFromToken(token, hrefAttribute)
 		return hrefValue, nil
 	}
 	return "", errExtractURLFromHTMLUsingConfiguration
@@ -72,7 +76,7 @@ func extractURLFromHTML(token html.Token) (string, error) {
 		log.Print("is empty1")
 		return "", errExtractURLFromHTML
 	}
-	hrefValue, error := getHTTPAttributeValueFromToken(token, "href")
+	hrefValue, error := getHTTPAttributeValueFromToken(token, hrefAttribute)
 	if error != nil {
 		return "", errExtractURLFromHTML
 	}
@@ -83,10 +87,7 @@ func extractURLFromHTML(token html.Token) (string, error) {
 }
 
 func isEmptyExtractURLFromHTMLConfiguration(extractURLFromHTMLConfiguration ExtractURLFromHTMLConfiguration) bool {
-	if extractURLFromHTMLConfiguration == (ExtractURLFromHTMLConfiguration{}) {
-		return true
-	}
-	return false
+	return extractURLFromHTMLConfiguration == (ExtractURLFromHTMLConfiguration{})
 }
 
 func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {

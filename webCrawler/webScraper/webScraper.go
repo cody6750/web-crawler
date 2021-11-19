@@ -6,10 +6,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-const (
-	hrefAttribute string = "href"
-)
-
 var (
 	errFormatURL                            error = errors.New("")
 	errEmptyParameter                       error = errors.New("")
@@ -50,7 +46,7 @@ type FormatURLConfiguration struct {
 //New ..
 func New() *WebScraper {
 	webScraper := &WebScraper{}
-	return *&webScraper
+	return webScraper
 }
 
 //Scrape ..
@@ -104,8 +100,5 @@ func (WebScraper) Scrape(url string, scrapeConfiguration ...ScrapeConfiguration)
 }
 
 func isEmptyScrapeConfiguration(s []ScrapeConfiguration) bool {
-	if len(s) == 0 {
-		return true
-	}
-	return false
+	return len(s) == 0
 }

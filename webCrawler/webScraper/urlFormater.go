@@ -1,6 +1,7 @@
 package webcrawler
 
 import (
+	"errors"
 	"log"
 	"strings"
 )
@@ -26,6 +27,8 @@ func formatURL(url string, formatURLConfig FormatURLConfiguration) (string, erro
 		if formatURLConfig.SuffixToAdd != "" {
 			url = url + formatURLConfig.SuffixToAdd
 		}
+	} else {
+		return "", errors.New("Does not match")
 	}
 	return url, nil
 }

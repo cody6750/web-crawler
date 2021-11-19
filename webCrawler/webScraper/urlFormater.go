@@ -31,8 +31,5 @@ func formatURL(url string, formatURLConfig FormatURLConfiguration) (string, erro
 }
 
 func isEmptyFormatURLConfiguration(formatURLConfiguration FormatURLConfiguration) bool {
-	if formatURLConfiguration == (FormatURLConfiguration{}) {
-		return true
-	}
-	return false
+	return formatURLConfiguration == (FormatURLConfiguration{})
 }

@@ -1,9 +1,16 @@
 package webcrawler
 
-import "strings"
+import (
+	"log"
+	"strings"
+)
 
 func formatURL(url string, formatURLConfig FormatURLConfiguration) (string, error) {
-	if strings.Contains(url, formatURLConfig.PrefixExist) && strings.Contains(url, formatURLConfig.SuffixExist) && strings.Contains(url, formatURLConfig.ReplaceOldString) {
+	if isEmptyFormatURLConfiguration(formatURLConfig) {
+		log.Print("formatURLConfig is empty")
+		return url, nil
+	}
+	if strings.HasPrefix(url, formatURLConfig.PrefixExist) && strings.HasSuffix(url, formatURLConfig.SuffixExist) && strings.Contains(url, formatURLConfig.ReplaceOldString) {
 		if formatURLConfig.ReplaceOldString != "" && formatURLConfig.ReplaceNewString != "" {
 			url = strings.ReplaceAll(url, formatURLConfig.ReplaceOldString, formatURLConfig.ReplaceNewString)
 		}
@@ -19,8 +26,6 @@ func formatURL(url string, formatURLConfig FormatURLConfiguration) (string, erro
 		if formatURLConfig.SuffixToAdd != "" {
 			url = url + formatURLConfig.SuffixToAdd
 		}
-	} else {
-		return "", errFormatURL
 	}
 	return url, nil
 }

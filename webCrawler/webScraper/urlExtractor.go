@@ -29,7 +29,6 @@ func ExtractURLWithScrapConfiguration(t html.Token, URLsToCheck map[string]bool,
 			}
 		} else {
 			ExtractedURL, _ = extractURLFromHTML(t)
-
 		}
 		if ExtractedURL == "" {
 			continue

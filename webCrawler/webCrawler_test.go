@@ -57,7 +57,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 						},
 						FormatURLConfiguration: webscraper.FormatURLConfiguration{
 							PrefixExist: "/search",
-							PrefixToAdd: " https://www.google.com",
+							PrefixToAdd: "https://www.google.com",
 						},
 					},
 				},

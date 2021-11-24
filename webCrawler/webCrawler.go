@@ -27,7 +27,7 @@ func New() *WebCrawler {
 func (w WebCrawler) Crawl(url string, depth int, ScrapeConfiguration ...webscraper.ScrapeConfiguration) ([]string, error) {
 	list, _ := w.scraper.Scrape(url, ScrapeConfiguration...)
 	depth--
-	if depth < 0 {
+	if depth > 0 {
 		for _, url := range list {
 			result, _ := w.Crawl(url, depth, ScrapeConfiguration...)
 			w.listOfWebsites = append(w.listOfWebsites, result...)

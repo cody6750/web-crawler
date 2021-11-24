@@ -13,18 +13,17 @@ const (
 )
 
 //ExtractURL ...
-func ExtractURL(t html.Token, URLsToCheck map[string]bool, ExtractedURLs []string) (string, error) {
+func ExtractURL(t html.Token, URLsToCheck map[string]bool) (string, error) {
 	ExtractedURL, _ := extractURLFromHTML(t)
 	if ExtractedURL != "" && !isDuplicateURL(ExtractedURL, URLsToCheck) {
 		log.Default().Printf("Extracted url: %v", ExtractedURL)
-		ExtractedURLs = append(ExtractedURLs, ExtractedURL)
 		return ExtractedURL, nil
 	}
 	return ExtractedURL, errors.New("")
 }
 
 //ExtractURLWithScrapConfiguration ...
-func ExtractURLWithScrapConfiguration(t html.Token, URLsToCheck map[string]bool, ExtractedURLs []string, TagsToCheck map[string]bool, scrapeConfiguration []ScrapeConfiguration) (string, error) {
+func ExtractURLWithScrapConfiguration(t html.Token, URLsToCheck map[string]bool, TagsToCheck map[string]bool, scrapeConfiguration []ScrapeConfiguration) (string, error) {
 	var ExtractedURL string
 	for _, scrapeConfiguration := range scrapeConfiguration {
 		if !isEmptyExtractURLFromHTMLConfiguration(scrapeConfiguration.ExtractURLFromHTMLConfiguration) {
@@ -45,13 +44,11 @@ func ExtractURLWithScrapConfiguration(t html.Token, URLsToCheck map[string]bool,
 
 			if !isDuplicateURL(formatedURL, URLsToCheck) {
 				log.Default().Printf("Formated url: %v", formatedURL)
-				ExtractedURLs = append(ExtractedURLs, formatedURL)
 				return formatedURL, nil
 
 			}
 		} else {
 			log.Default().Printf("Extracted url: %v", ExtractedURL)
-			ExtractedURLs = append(ExtractedURLs, ExtractedURL)
 			return ExtractedURL, nil
 		}
 	}

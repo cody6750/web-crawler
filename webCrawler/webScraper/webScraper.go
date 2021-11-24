@@ -82,15 +82,17 @@ func (WebScraper) Scrape(url string, scrapeConfiguration ...ScrapeConfiguration)
 			t := z.Token()
 			if isEmptyScrapeConfiguration(scrapeConfiguration) {
 				//TODO: Replace ExtractedURL with a channel
-				_, err := ExtractURL(t, URLsToCheck, ExtractedURLs)
+				extractedURL, err := ExtractURL(t, URLsToCheck)
 				if err != nil {
 					continue
 				}
+				ExtractedURLs = append(ExtractedURLs, extractedURL)
 			} else {
-				_, err := ExtractURLWithScrapConfiguration(t, URLsToCheck, ExtractedURLs, TagsToCheck, scrapeConfiguration)
+				extractedURL, err := ExtractURLWithScrapConfiguration(t, URLsToCheck, TagsToCheck, scrapeConfiguration)
 				if err != nil {
 					continue
 				}
+				ExtractedURLs = append(ExtractedURLs, extractedURL)
 			}
 			// This is our break statement
 		case tt == html.ErrorToken:

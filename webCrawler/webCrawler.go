@@ -24,14 +24,13 @@ func New() *WebCrawler {
 }
 
 //Crawl ...
-func (w WebCrawler) Crawl(url string, depth int, ScrapeConfiguration ...webscraper.ScrapeConfiguration) ([]string, error) {
-	list, _ := w.scraper.Scrape(url, ScrapeConfiguration...)
+func (w WebCrawler) Crawl(url string, depth int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
+	list, _ := w.scraper.Scrape(url, itemsToget, ScrapeConfiguration...)
 	depth--
 	if depth > 0 {
 		for _, url := range list {
-			result, _ := w.Crawl(url, depth, ScrapeConfiguration...)
+			result, _ := w.Crawl(url, depth, itemsToget, ScrapeConfiguration...)
 			w.listOfWebsites = append(w.listOfWebsites, result...)
-
 		}
 	} else {
 		log.Print(w.listOfWebsites)

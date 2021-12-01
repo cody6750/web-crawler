@@ -10,7 +10,7 @@ import (
 func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 	type args struct {
 		token     html.Token
-		urlConfig ExtractURLFromHTMLConfiguration
+		urlConfig ExtractFromHTMLConfiguration
 	}
 	tests := []struct {
 		name               string
@@ -28,7 +28,7 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 						{Key: "href", Val: "amazon.com"},
 					},
 				},
-				urlConfig: ExtractURLFromHTMLConfiguration{
+				urlConfig: ExtractFromHTMLConfiguration{
 					TagToCheck:            "span",
 					AttributeToCheck:      "class",
 					AttributeValueToCheck: "a-link-normal",
@@ -47,7 +47,7 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 						{Key: "href", Val: "amazon.com"},
 					},
 				},
-				urlConfig: ExtractURLFromHTMLConfiguration{
+				urlConfig: ExtractFromHTMLConfiguration{
 					TagToCheck:            "",
 					AttributeToCheck:      "class",
 					AttributeValueToCheck: "not it sis",
@@ -184,7 +184,7 @@ func Test_getHTTPAttributeValueFromToken(t *testing.T) {
 				t.Errorf("getHTTPAttributeValueFromToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			log.Printf("isEmptyScrapeConfiguration() = %v, want %v", gotAttributeValue, tt.wantAttributeValue)
+			log.Printf("isEmptyScrapeURLConfiguration() = %v, want %v", gotAttributeValue, tt.wantAttributeValue)
 			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 		})
 	}
@@ -248,7 +248,7 @@ func Test_formatURL(t *testing.T) {
 				t.Errorf("formatURL() = %v, want %v", got, tt.want)
 				return
 			}
-			log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+			log.Printf("isEmptyScrapeURLConfiguration() = %v, want %v", got, tt.want)
 			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 		})
 	}
@@ -287,16 +287,16 @@ func Test_isEmptyFormatURLConfiguration(t *testing.T) {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("isEmptyFormatURLConfiguration() = %v, want %v", got, tt.want)
 			} else {
-				log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+				log.Printf("isEmptyScrapeURLConfiguration() = %v, want %v", got, tt.want)
 				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 			}
 		})
 	}
 }
 
-func Test_isEmptyExtractURLFromHTMLConfiguration(t *testing.T) {
+func Test_isEmptyExtractFromHTMLConfiguration(t *testing.T) {
 	type args struct {
-		extractURLFromHTMLConfiguration ExtractURLFromHTMLConfiguration
+		extractFromHTMLConfiguration ExtractFromHTMLConfiguration
 	}
 	tests := []struct {
 		name string
@@ -306,14 +306,14 @@ func Test_isEmptyExtractURLFromHTMLConfiguration(t *testing.T) {
 		{
 			name: "Is empty",
 			args: args{
-				extractURLFromHTMLConfiguration: ExtractURLFromHTMLConfiguration{},
+				extractFromHTMLConfiguration: ExtractFromHTMLConfiguration{},
 			},
 			want: true,
 		},
 		{
 			name: "Is not empty",
 			args: args{
-				extractURLFromHTMLConfiguration: ExtractURLFromHTMLConfiguration{
+				extractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
 					AttributeToCheck: "hi",
 				},
 			},
@@ -323,20 +323,20 @@ func Test_isEmptyExtractURLFromHTMLConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isEmptyExtractURLFromHTMLConfiguration(tt.args.extractURLFromHTMLConfiguration); got != tt.want {
+			if got := isEmptyExtractFromHTMLConfiguration(tt.args.extractFromHTMLConfiguration); got != tt.want {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
-				t.Errorf("isEmptyExtractURLFromHTMLConfiguration() = test name:%v ,%v, want %v", tt.name, got, tt.want)
+				t.Errorf("isEmptyExtractFromHTMLConfiguration() = test name:%v ,%v, want %v", tt.name, got, tt.want)
 			} else {
-				log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+				log.Printf("isEmptyScrapeURLConfiguration() = %v, want %v", got, tt.want)
 				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 			}
 		})
 	}
 }
 
-func Test_isEmptyScrapeConfiguration(t *testing.T) {
+func Test_isEmptyScrapeURLConfiguration(t *testing.T) {
 	type args struct {
-		s []ScrapeConfiguration
+		s []ScrapeURLConfiguration
 	}
 	tests := []struct {
 		name string
@@ -346,11 +346,11 @@ func Test_isEmptyScrapeConfiguration(t *testing.T) {
 		{
 			name: "Not empty scrap configuration slice",
 			args: args{
-				s: []ScrapeConfiguration{
+				s: []ScrapeURLConfiguration{
 					{
-						ConfigurationName:               "",
-						ExtractURLFromHTMLConfiguration: ExtractURLFromHTMLConfiguration{},
-						FormatURLConfiguration:          FormatURLConfiguration{},
+						ConfigurationName:            "",
+						ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{},
+						FormatURLConfiguration:       FormatURLConfiguration{},
 					},
 				},
 			},
@@ -365,11 +365,11 @@ func Test_isEmptyScrapeConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isEmptyScrapeConfiguration(tt.args.s); got != tt.want {
+			if got := isEmptyScrapeURLConfiguration(tt.args.s); got != tt.want {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
-				t.Errorf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+				t.Errorf("isEmptyScrapeURLConfiguration() = %v, want %v", got, tt.want)
 			} else {
-				log.Printf("isEmptyScrapeConfiguration() = %v, want %v", got, tt.want)
+				log.Printf("isEmptyScrapeURLConfiguration() = %v, want %v", got, tt.want)
 				log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
 			}
 		})

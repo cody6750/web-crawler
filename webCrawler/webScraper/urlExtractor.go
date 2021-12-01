@@ -22,13 +22,13 @@ func ExtractURL(t html.Token, URLsToCheck map[string]bool) (string, error) {
 	return ExtractedURL, errors.New("")
 }
 
-//ExtractURLWithScrapConfiguration ...
-func ExtractURLWithScrapConfiguration(t html.Token, URLsToCheck map[string]bool, TagsToCheck map[string]bool, scrapeConfiguration []ScrapeConfiguration) (string, error) {
+//ExtractURLWithScrapURLConfiguration ...
+func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bool, TagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfiguration) (string, error) {
 	var ExtractedURL string
-	for _, scrapeConfiguration := range scrapeConfiguration {
-		if !isEmptyExtractURLFromHTMLConfiguration(scrapeConfiguration.ExtractURLFromHTMLConfiguration) {
+	for _, scrapeURLConfiguration := range scrapeURLConfiguration {
+		if !isEmptyExtractFromHTMLConfiguration(scrapeURLConfiguration.ExtractFromHTMLConfiguration) {
 			if _, tagExist := TagsToCheck[t.Data]; tagExist {
-				ExtractedURL, _ = extractURLFromHTMLUsingConfiguration(t, scrapeConfiguration.ExtractURLFromHTMLConfiguration)
+				ExtractedURL, _ = extractURLFromHTMLUsingConfiguration(t, scrapeURLConfiguration.ExtractFromHTMLConfiguration)
 			}
 		} else {
 			ExtractedURL, _ = extractURLFromHTML(t)
@@ -36,8 +36,8 @@ func ExtractURLWithScrapConfiguration(t html.Token, URLsToCheck map[string]bool,
 		if ExtractedURL == "" {
 			continue
 		}
-		if !isEmptyFormatURLConfiguration(scrapeConfiguration.FormatURLConfiguration) {
-			formatedURL, err := formatURL(ExtractedURL, scrapeConfiguration.FormatURLConfiguration)
+		if !isEmptyFormatURLConfiguration(scrapeURLConfiguration.FormatURLConfiguration) {
+			formatedURL, err := formatURL(ExtractedURL, scrapeURLConfiguration.FormatURLConfiguration)
 			if err != nil {
 				continue
 			}
@@ -54,8 +54,8 @@ func ExtractURLWithScrapConfiguration(t html.Token, URLsToCheck map[string]bool,
 	}
 	return "", errors.New("")
 }
-func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractURLFromHTMLConfiguration) (string, error) {
-	if isEmptyExtractURLFromHTMLConfiguration(urlConfig) {
+func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFromHTMLConfiguration) (string, error) {
+	if isEmptyExtractFromHTMLConfiguration(urlConfig) {
 		log.Print("is empty")
 		return "", errExtractURLFromHTMLUsingConfiguration
 	}
@@ -83,24 +83,8 @@ func extractURLFromHTML(token html.Token) (string, error) {
 	return hrefValue, nil
 }
 
-func isEmptyExtractURLFromHTMLConfiguration(extractURLFromHTMLConfiguration ExtractURLFromHTMLConfiguration) bool {
-	return extractURLFromHTMLConfiguration == (ExtractURLFromHTMLConfiguration{})
-}
-
-func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {
-	if attributeToGet == "" {
-		return "empty string", errEmptyParameter
-	}
-	for _, a := range token.Attr {
-		if a.Key == attributeToGet {
-			attributeValue = a.Val
-			return attributeValue, nil
-		}
-	}
-	if attributeValue == "" {
-		return "empty string", errEmptyParameter
-	}
-	return "does not exist", nil
+func isEmptyExtractFromHTMLConfiguration(extractFromHTMLConfiguration ExtractFromHTMLConfiguration) bool {
+	return extractFromHTMLConfiguration == (ExtractFromHTMLConfiguration{})
 }
 
 func isEmptyToken(token html.Token) bool {

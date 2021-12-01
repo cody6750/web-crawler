@@ -11,24 +11,18 @@ var (
 	errEmptyParameter                       error = errors.New("")
 	errExtractURLFromHTMLUsingConfiguration error = errors.New("")
 	errExtractURLFromHTML                   error = errors.New("")
+	err                                     error
 )
 
 //WebScraper ...
 type WebScraper struct {
 }
 
-//ScrapeConfiguration ...
-type ScrapeConfiguration struct {
-	ConfigurationName               string
-	ExtractURLFromHTMLConfiguration ExtractURLFromHTMLConfiguration
-	FormatURLConfiguration          FormatURLConfiguration
-}
-
-//ExtractURLFromHTMLConfiguration ...
-type ExtractURLFromHTMLConfiguration struct {
-	TagToCheck            string
-	AttributeToCheck      string
-	AttributeValueToCheck string
+//ScrapeURLConfiguration ...
+type ScrapeURLConfiguration struct {
+	ConfigurationName            string
+	ExtractFromHTMLConfiguration ExtractFromHTMLConfiguration
+	FormatURLConfiguration       FormatURLConfiguration
 }
 
 //FormatURLConfiguration ...
@@ -50,28 +44,32 @@ func New() *WebScraper {
 }
 
 //Scrape ..
-func (WebScraper) Scrape(url string, scrapeConfiguration ...ScrapeConfiguration) ([]string, error) {
+func (WebScraper) Scrape(url string, scrapeItemConfiguration []ScrapeItemConfiguration, scrapeURLConfiguration ...ScrapeURLConfiguration) ([]string, error) {
 	var (
-		ExtractedURLs []string
-		TagsToCheck   map[string]bool
-		URLsToCheck   map[string]bool
+		ExtractedURLs   []string
+		ExtractedItems  []Item
+		urlTagsToCheck  map[string]bool
+		itemTagsToCheck map[string]bool
+		URLsToCheck     map[string]bool
 	)
 
 	URLsToCheck = make(map[string]bool)
 	response := ConnectToWebsite(url).Body
+	if !isEmptyScrapeURLConfiguration(scrapeURLConfiguration) {
+		urlTagsToCheck, err = generateURLTagsToCheckMap(urlTagsToCheck, scrapeURLConfiguration)
+		if err != nil {
+			return nil, errors.New("Failed to generate url tags")
+		}
+	}
+	if !isEmptyItem(scrapeItemConfiguration) {
+		itemTagsToCheck, err = generateItemTagsToCheckMap(itemTagsToCheck, scrapeItemConfiguration)
+		if err != nil {
+			return nil, errors.New("Failed to generate item tags")
+		}
+	}
 	defer response.Close()
 	// Parse HTML response by turning it into Tokens
 	z := html.NewTokenizer(response)
-
-	// If htmlURLConfiguration parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
-	for _, scrapeConfiguration := range scrapeConfiguration {
-		if !isEmptyExtractURLFromHTMLConfiguration(scrapeConfiguration.ExtractURLFromHTMLConfiguration) {
-			if len(TagsToCheck) == 0 {
-				TagsToCheck = make(map[string]bool)
-			}
-			TagsToCheck[scrapeConfiguration.ExtractURLFromHTMLConfiguration.TagToCheck] = true
-		}
-	}
 	// This while loop parses through all of the tokens generated for the HTML response.
 	for {
 		//Iterate through each token
@@ -80,7 +78,7 @@ func (WebScraper) Scrape(url string, scrapeConfiguration ...ScrapeConfiguration)
 		switch {
 		case tt == html.StartTagToken:
 			t := z.Token()
-			if isEmptyScrapeConfiguration(scrapeConfiguration) {
+			if isEmptyScrapeURLConfiguration(scrapeURLConfiguration) {
 				//TODO: Replace ExtractedURL with a channel
 				extractedURL, err := ExtractURL(t, URLsToCheck)
 				if err != nil {
@@ -88,12 +86,20 @@ func (WebScraper) Scrape(url string, scrapeConfiguration ...ScrapeConfiguration)
 				}
 				ExtractedURLs = append(ExtractedURLs, extractedURL)
 			} else {
-				extractedURL, err := ExtractURLWithScrapConfiguration(t, URLsToCheck, TagsToCheck, scrapeConfiguration)
+				extractedURL, err := ExtractURLWithScrapURLConfiguration(t, URLsToCheck, urlTagsToCheck, scrapeURLConfiguration)
 				if err != nil {
 					continue
 				}
 				ExtractedURLs = append(ExtractedURLs, extractedURL)
 			}
+			if !isEmptyItem(scrapeItemConfiguration) {
+				extractedItem, err := ExtractItemWithScrapItemConfiguration(t, url, itemTagsToCheck, scrapeItemConfiguration)
+				if err != nil {
+					continue
+				}
+				ExtractedItems = append(ExtractedItems, extractedItem)
+			}
+
 			// This is our break statement
 		case tt == html.ErrorToken:
 			return ExtractedURLs, nil
@@ -101,6 +107,44 @@ func (WebScraper) Scrape(url string, scrapeConfiguration ...ScrapeConfiguration)
 	}
 }
 
-func isEmptyScrapeConfiguration(s []ScrapeConfiguration) bool {
+func generateItemTagsToCheckMap(itemTagsToCheck map[string]bool, scrapeItemConfiguration []ScrapeItemConfiguration) (map[string]bool, error) {
+	if isEmptyItem(scrapeItemConfiguration) {
+		return nil, errors.New("Item is empty")
+	}
+	// If item parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
+	for _, item := range scrapeItemConfiguration {
+		for _, item := range item.ItemToget {
+			if !isEmptyExtractFromHTMLConfiguration(item) {
+				if len(itemTagsToCheck) == 0 {
+					itemTagsToCheck = make(map[string]bool)
+				}
+				itemTagsToCheck[item.TagToCheck] = true
+			}
+		}
+	}
+	return itemTagsToCheck, nil
+}
+
+func generateURLTagsToCheckMap(urlTagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfiguration) (map[string]bool, error) {
+	if isEmptyScrapeURLConfiguration(scrapeURLConfiguration) {
+		return nil, errors.New("Scrap configuration is empty")
+	}
+	// If htmlURLConfiguration parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
+	for _, scrapeURLConfiguration := range scrapeURLConfiguration {
+		if !isEmptyExtractFromHTMLConfiguration(scrapeURLConfiguration.ExtractFromHTMLConfiguration) {
+			if len(urlTagsToCheck) == 0 {
+				urlTagsToCheck = make(map[string]bool)
+			}
+			urlTagsToCheck[scrapeURLConfiguration.ExtractFromHTMLConfiguration.TagToCheck] = true
+		}
+	}
+	return urlTagsToCheck, nil
+}
+
+func isEmptyScrapeURLConfiguration(s []ScrapeURLConfiguration) bool {
 	return len(s) == 0
+}
+
+func isEmptyItem(i []ScrapeItemConfiguration) bool {
+	return len(i) == 0
 }

@@ -1,7 +1,6 @@
 package webcrawler
 
 import (
-	"errors"
 	"log"
 	"strings"
 
@@ -14,12 +13,13 @@ const (
 
 //ExtractURL ...
 func ExtractURL(t html.Token, URLsToCheck map[string]bool) (string, error) {
+
 	ExtractedURL, _ := extractURLFromHTML(t)
 	if ExtractedURL != "" && !isDuplicateURL(ExtractedURL, URLsToCheck) {
 		log.Default().Printf("Extracted url: %v", ExtractedURL)
 		return ExtractedURL, nil
 	}
-	return ExtractedURL, errors.New("")
+	return ExtractedURL, nil
 }
 
 //ExtractURLWithScrapURLConfiguration ...
@@ -52,15 +52,15 @@ func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bo
 			return ExtractedURL, nil
 		}
 	}
-	return "", errors.New("")
+	return "", nil
 }
 func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFromHTMLConfiguration) (string, error) {
 	if isEmptyExtractFromHTMLConfiguration(urlConfig) {
 		log.Print("is empty")
 		return "", errExtractURLFromHTMLUsingConfiguration
 	}
-	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, urlConfig.AttributeToCheck)
-	if strings.Contains(HTTPAttributeValueFromToken, urlConfig.AttributeValueToCheck) {
+	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, urlConfig.Attribute)
+	if strings.Contains(HTTPAttributeValueFromToken, urlConfig.AttributeValue) {
 		//log.Printf("Got attribute %v, Value %v", urlConfig.AttributeToCheck, HTTPAttributeValueFromToken)
 		hrefValue, _ := getHTTPAttributeValueFromToken(token, hrefAttribute)
 		return hrefValue, nil

@@ -26,9 +26,9 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 		ScrapeURLConfiguration: []ScrapeURLConfiguration{
 		// 			{
 		// 				ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-		// 					AttributeToCheck:      "class",
-		// 					AttributeValueToCheck: "a-link-normal",
-		// 					TagToCheck:            "a",
+		// 					Attribute:      "class",
+		// 					AttributeValue: "a-link-normal",
+		// 					Tag:            "a",
 		// 				},
 		// 				FormatURLConfiguration: FormatURLConfiguration{
 		// 					PrefixToAdd: "http://amazon.com",
@@ -41,13 +41,13 @@ func TestWebCrawler_Crawl(t *testing.T) {
 			name: "Crawl Correctly",
 			w:    crawl,
 			args: args{
-				url: "https://www.amazon.com/gp/offer-listing/B08W8DGK3X/ref=dp_olp_unknown_mbc",
+				url: "https://www.amazon.com/ZOTAC-Graphics-IceStorm-Advanced-ZT-A30800J-10PLHR/dp/B099ZCG8T5/ref=sr_1_4?keywords=RTX+3080&qid=1638491073&s=pc&sr=1-4",
 				ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
 					{
 						// ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-						// 	AttributeToCheck:      "class",
-						// 	AttributeValueToCheck: "a-link-normal",
-						// 	TagToCheck:            "a",
+						// 	Attribute:      "class",
+						// 	AttributeValue: "a-link-normal",
+						// 	Tag:            "a",
 						// },
 						FormatURLConfiguration: webscraper.FormatURLConfiguration{
 							PrefixExist: "/",
@@ -58,11 +58,16 @@ func TestWebCrawler_Crawl(t *testing.T) {
 				ScrapeItemConfiguration: []webscraper.ScrapeItemConfiguration{
 					{
 						ItemName: "Product Name",
-						ItemToget: map[string]webscraper.ExtractFromHTMLConfiguration{
-							"price": webscraper.ExtractFromHTMLConfiguration{
-								TagToCheck:            "span",
-								AttributeToCheck:      "class",
-								AttributeValueToCheck: "a-price-whole",
+						ItemToGet: webscraper.ExtractFromHTMLConfiguration{
+							Tag:            "div",
+							Attribute:      "id",
+							AttributeValue: "dp",
+						},
+						ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
+							"price": {
+								Tag:            "span",
+								Attribute:      "aria-hidden",
+								AttributeValue: "true",
 							},
 						},
 					},
@@ -77,7 +82,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 		ScrapeURLConfiguration: []ScrapeURLConfiguration{
 		// 			{
 		// 				ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-		// 					TagToCheck: "a",
+		// 					Tag: "a",
 		// 				},
 		// 				FormatURLConfiguration: FormatURLConfiguration{
 		// 					PrefixExist:    "/url?q=",
@@ -86,7 +91,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 			},
 		// 			{
 		// 				ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-		// 					TagToCheck: "a",
+		// 					Tag: "a",
 		// 				},
 		// 				FormatURLConfiguration: FormatURLConfiguration{
 		// 					PrefixExist: "/search",

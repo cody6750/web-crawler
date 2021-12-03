@@ -46,8 +46,8 @@ func New() *WebScraper {
 //Scrape ..
 func (WebScraper) Scrape(url string, scrapeItemConfiguration []ScrapeItemConfiguration, scrapeURLConfiguration ...ScrapeURLConfiguration) ([]string, error) {
 	var (
-		ExtractedURLs   []string
-		ExtractedItems  []Item
+		ExtractedURLs []string
+		//ExtractedItems  []Item
 		urlTagsToCheck  map[string]bool
 		itemTagsToCheck map[string]bool
 		URLsToCheck     map[string]bool
@@ -93,11 +93,11 @@ func (WebScraper) Scrape(url string, scrapeItemConfiguration []ScrapeItemConfigu
 				ExtractedURLs = append(ExtractedURLs, extractedURL)
 			}
 			if !isEmptyItem(scrapeItemConfiguration) {
-				extractedItem, err := ExtractItemWithScrapItemConfiguration(t, url, itemTagsToCheck, scrapeItemConfiguration)
+				err := ExtractItemWithScrapItemConfiguration(t, z, url, itemTagsToCheck, scrapeItemConfiguration)
 				if err != nil {
 					continue
 				}
-				ExtractedItems = append(ExtractedItems, extractedItem)
+				//ExtractedItems = append(ExtractedItems, extractedItem)
 			}
 
 			// This is our break statement
@@ -113,13 +113,11 @@ func generateItemTagsToCheckMap(itemTagsToCheck map[string]bool, scrapeItemConfi
 	}
 	// If item parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
 	for _, item := range scrapeItemConfiguration {
-		for _, item := range item.ItemToget {
-			if !isEmptyExtractFromHTMLConfiguration(item) {
-				if len(itemTagsToCheck) == 0 {
-					itemTagsToCheck = make(map[string]bool)
-				}
-				itemTagsToCheck[item.TagToCheck] = true
+		if !isEmptyExtractFromHTMLConfiguration(item.ItemToGet) {
+			if len(itemTagsToCheck) == 0 {
+				itemTagsToCheck = make(map[string]bool)
 			}
+			itemTagsToCheck[item.ItemToGet.Tag] = true
 		}
 	}
 	return itemTagsToCheck, nil
@@ -135,7 +133,7 @@ func generateURLTagsToCheckMap(urlTagsToCheck map[string]bool, scrapeURLConfigur
 			if len(urlTagsToCheck) == 0 {
 				urlTagsToCheck = make(map[string]bool)
 			}
-			urlTagsToCheck[scrapeURLConfiguration.ExtractFromHTMLConfiguration.TagToCheck] = true
+			urlTagsToCheck[scrapeURLConfiguration.ExtractFromHTMLConfiguration.Tag] = true
 		}
 	}
 	return urlTagsToCheck, nil

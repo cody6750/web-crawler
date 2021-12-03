@@ -29,9 +29,9 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 					},
 				},
 				urlConfig: ExtractFromHTMLConfiguration{
-					TagToCheck:            "span",
-					AttributeToCheck:      "class",
-					AttributeValueToCheck: "a-link-normal",
+					Tag:            "span",
+					Attribute:      "class",
+					AttributeValue: "a-link-normal",
 				},
 			},
 			wantAttributeValue: "amazon.com",
@@ -48,9 +48,9 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 					},
 				},
 				urlConfig: ExtractFromHTMLConfiguration{
-					TagToCheck:            "",
-					AttributeToCheck:      "class",
-					AttributeValueToCheck: "not it sis",
+					Tag:            "",
+					Attribute:      "class",
+					AttributeValue: "not it sis",
 				},
 			},
 			wantAttributeValue: "",
@@ -314,7 +314,7 @@ func Test_isEmptyExtractFromHTMLConfiguration(t *testing.T) {
 			name: "Is not empty",
 			args: args{
 				extractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-					AttributeToCheck: "hi",
+					Attribute: "hi",
 				},
 			},
 			want: false,

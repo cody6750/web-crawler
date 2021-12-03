@@ -6,9 +6,9 @@ import (
 
 //ExtractFromHTMLConfiguration ...
 type ExtractFromHTMLConfiguration struct {
-	TagToCheck            string
-	AttributeToCheck      string
-	AttributeValueToCheck string
+	Tag            string
+	Attribute      string
+	AttributeValue string
 }
 
 func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {

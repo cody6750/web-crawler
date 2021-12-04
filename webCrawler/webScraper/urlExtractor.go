@@ -43,7 +43,7 @@ func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bo
 			}
 
 			if !isDuplicateURL(formatedURL, URLsToCheck) {
-				log.Default().Printf("Formated url: %v", formatedURL)
+				//log.Default().Printf("Formated url: %v", formatedURL)
 				return formatedURL, nil
 
 			}

@@ -1,6 +1,7 @@
 package webcrawler
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 
@@ -30,6 +31,7 @@ func ExtractItemWithScrapItemConfiguration(t html.Token, z *html.Tokenizer, url 
 		for _, scrapeItemConfiguration := range scrapeItemConfiguration {
 			HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(t, scrapeItemConfiguration.ItemToGet.Attribute)
 			if t.Data == scrapeItemConfiguration.ItemToGet.Tag && HTTPAttributeValueFromToken == scrapeItemConfiguration.ItemToGet.AttributeValue {
+				scrapeItemConfiguration.URL = url
 				parseTokenForItemDetails(t, z, scrapeItemConfiguration)
 				return nil
 			}
@@ -55,6 +57,9 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 	if err != nil {
 		return item, nil
 	}
+	item.ItemName = scrapeItemConfiguration.ItemName
+	item.URL = scrapeItemConfiguration.URL
+	item.ItemDetails = make(map[string]string)
 	tagStack.push(token)
 	for len(tagStack) != 0 {
 		tokenType = z.Next()
@@ -66,21 +71,27 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 				for itemDetailName, itemDetails := range scrapeItemConfiguration.ItemDetails {
 					HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(currentToken, itemDetails.Attribute)
 					if itemDetails.Tag == currentToken.Data && itemDetails.AttributeValue == HTTPAttributeValueFromToken {
-						log.Printf("%v : %v", itemDetailName, currentToken)
-						tokenType = z.Next()
+						for tokenType != html.TextToken {
+							tokenType = z.Next()
+						}
 						currentToken = z.Token()
-						log.Printf("%v : %v", itemDetailName, currentToken)
+						str := currentToken.String()
+						item.ItemDetails[itemDetailName] = str
+						continue
 					}
 				}
 			}
 		case tokenType == html.EndTagToken:
 			tagStack.pop()
 		case tokenType == html.ErrorToken:
-			return Item{}, errors.New("Should not error here")
+			json, _ := json.MarshalIndent(item, "", "    ")
+			log.Print("\n" + string(json))
+			return item, nil
 		}
 	}
-	Item := Item{}
-	return Item, nil
+	json, _ := json.MarshalIndent(item, "", "    ")
+	log.Print("\n" + string(json))
+	return item, nil
 }
 func isEmptyItemToGet(itemToget map[string]ExtractFromHTMLConfiguration) bool {
 	return len(itemToget) == 0

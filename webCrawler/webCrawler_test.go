@@ -18,27 +18,8 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		w    *WebCrawler
 		args args
 	}{
-		// {
-		// 	name: "Crawl Correctly",
-		// 	w:    crawl,
-		// 	args: args{
-		// 		url: "https://www.amazon.com/s?k=RTX+3080&ref=nb_sb_noss_2",
-		// 		ScrapeURLConfiguration: []ScrapeURLConfiguration{
-		// 			{
-		// 				ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-		// 					Attribute:      "class",
-		// 					AttributeValue: "a-link-normal",
-		// 					Tag:            "a",
-		// 				},
-		// 				FormatURLConfiguration: FormatURLConfiguration{
-		// 					PrefixToAdd: "http://amazon.com",
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// },
 		{
-			name: "Crawl Correctly",
+			name: "Crawl Correctly- Product Page",
 			w:    crawl,
 			args: args{
 				url: "https://www.amazon.com/ZOTAC-Graphics-IceStorm-Advanced-ZT-A30800J-10PLHR/dp/B099ZCG8T5/ref=sr_1_4?keywords=RTX+3080&qid=1638491073&s=pc&sr=1-4",
@@ -64,10 +45,25 @@ func TestWebCrawler_Crawl(t *testing.T) {
 							AttributeValue: "dp",
 						},
 						ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
+							"title": {
+								Tag:            "span",
+								Attribute:      "id",
+								AttributeValue: "productTitle",
+							},
+							"add-to-cart": {
+								Tag:            "span",
+								Attribute:      "id",
+								AttributeValue: "submit.add-to-cart-announce",
+							},
+							"ratings": {
+								Tag:            "span",
+								Attribute:      "id",
+								AttributeValue: "acrCustomerReviewText",
+							},
 							"price": {
 								Tag:            "span",
-								Attribute:      "aria-hidden",
-								AttributeValue: "true",
+								Attribute:      "class",
+								AttributeValue: "a-price a-text-price a-size-medium apexPriceToPay",
 							},
 						},
 					},
@@ -75,37 +71,60 @@ func TestWebCrawler_Crawl(t *testing.T) {
 			},
 		},
 		// {
-		// 	name: "Crawl Correctly",
+		// 	name: "Crawl Correctly - Product search page",
 		// 	w:    crawl,
 		// 	args: args{
-		// 		url: "https://www.google.com/search?q=RTX+3080&rlz=1C1CHBF_enUS724US724&oq=RTX+3080&aqs=chrome.0.69i59j69i60l3j69i65.1086j0j15&sourceid=chrome&ie=UTF-8",
-		// 		ScrapeURLConfiguration: []ScrapeURLConfiguration{
+		// 		url: "https://www.amazon.com/s?k=RTX+3080&ref=nb_sb_noss_2",
+		// 		ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
 		// 			{
-		// 				ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-		// 					Tag: "a",
-		// 				},
-		// 				FormatURLConfiguration: FormatURLConfiguration{
-		// 					PrefixExist:    "/url?q=",
-		// 					PrefixToRemove: "/url?q=",
-		// 				},
-		// 			},
-		// 			{
-		// 				ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
-		// 					Tag: "a",
-		// 				},
-		// 				FormatURLConfiguration: FormatURLConfiguration{
-		// 					PrefixExist: "/search",
-		// 					PrefixToAdd: "https://www.google.com",
+		// 				// ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
+		// 				// 	Attribute:      "class",
+		// 				// 	AttributeValue: "a-link-normal",
+		// 				// 	Tag:            "a",
+		// 				// },
+		// 				FormatURLConfiguration: webscraper.FormatURLConfiguration{
+		// 					PrefixExist: "/",
+		// 					PrefixToAdd: "http://amazon.com",
 		// 				},
 		// 			},
 		// 		},
-		// 	},
-		// },
-		// {
-		// 	name: "Crawl Correctly",
-		// 	w:    crawl,
-		// 	args: args{
-		// 		url: "https://www.newegg.com/p/pl?d=RTX+3080",
+		// 		ScrapeItemConfiguration: []webscraper.ScrapeItemConfiguration{
+		// 			{
+		// 				ItemName: "Product Name",
+		// 				ItemToGet: webscraper.ExtractFromHTMLConfiguration{
+		// 					Tag:            "div",
+		// 					Attribute:      "data-component-type",
+		// 					AttributeValue: "s-search-result",
+		// 				},
+		// 				ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
+		// 					"title": {
+		// 						Tag:            "span",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "a-size-medium a-color-base a-text-normal",
+		// 					},
+		// 					"price": {
+		// 						Tag:            "span",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "a-price",
+		// 					},
+		// 					"ratings": {
+		// 						Tag:            "i",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "a-icon a-icon-star-small a-star-small-4-5 aok-align-bottom",
+		// 					},
+		// 					"number of ratings": {
+		// 						Tag:            "a",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "a-link-normal",
+		// 					},
+		// 					"details": {
+		// 						Tag:            "td",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "a-size-base prodDetAttrValue",
+		// 					},
+		// 				},
+		// 			},
+		// 		},
 		// 	},
 		// },
 	}

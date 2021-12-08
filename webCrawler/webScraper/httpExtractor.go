@@ -9,7 +9,7 @@ type ExtractFromHTMLConfiguration struct {
 	Tag            string
 	Attribute      string
 	AttributeValue string
-	TokenValue     string
+	AttributeToGet string
 }
 
 func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {

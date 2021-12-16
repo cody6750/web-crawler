@@ -38,15 +38,15 @@ func (w WebCrawler) Crawl(url string, urlsToCrawl chan Queue, duplicateUrls chan
 			log.Print("called")
 			currentQueue := <-urlsToCrawl
 			scrape := currentQueue.dequeue()
-			go func(i int) {
-				wg.Add(1)
+			wg.Add(1)
+			go func(i int, scrape string) {
 				defer wg.Done()
 				_, err := w.scraper.Scrape(scrape, itemsToget, ScrapeConfiguration...)
 				log.Printf("Go routine:%v | Crawling link: %v", i, scrape)
 				if err != nil {
 				}
-				urlsToCrawl <- currentQueue
-			}(i)
+			}(i, scrape)
+			urlsToCrawl <- currentQueue
 		}
 		wg.Wait()
 		return w.listOfWebsites, nil

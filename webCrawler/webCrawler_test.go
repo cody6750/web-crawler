@@ -7,6 +7,12 @@ import (
 )
 
 func TestWebCrawler_Crawl(t *testing.T) {
+	urlToCrawl := make(chan Queue, 500)
+	duplicateUrls := make(chan map[string]bool, 2)
+	q := Queue{}
+	m := make(map[string]bool)
+	duplicateUrls <- m
+	urlToCrawl <- q
 	crawl := New()
 	type args struct {
 		url                     string
@@ -127,11 +133,64 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 		},
 		// 	},
 		// },
+		// {
+		// 	name: "New egg Crawl Correctly - Product search page",
+		// 	w:    crawl,
+		// 	args: args{
+		// 		url: "https://www.newegg.com/p/pl?d=rtx+3080&LeftPriceRange=1000+",
+		// 		ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
+		// 			{
+		// 				// ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
+		// 				// 	Attribute:      "class",
+		// 				// 	AttributeValue: "a-link-normal",
+		// 				// 	Tag:            "a",
+		// 				// },
+		// 				FormatURLConfiguration: webscraper.FormatURLConfiguration{
+		// 					PrefixExist: "/",
+		// 					PrefixToAdd: "http://newegg.com",
+		// 				},
+		// 			},
+		// 		},
+		// 		ScrapeItemConfiguration: []webscraper.ScrapeItemConfiguration{
+		// 			{
+		// 				ItemName: "Graphics Cards",
+		// 				ItemToGet: webscraper.ExtractFromHTMLConfiguration{
+		// 					Tag:            "div",
+		// 					Attribute:      "class",
+		// 					AttributeValue: "item-cell",
+		// 				},
+		// 				ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
+		// 					"title": {
+		// 						Tag:            "a",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "item-title",
+		// 					},
+		// 					"price": {
+		// 						Tag:            "strong",
+		// 						Attribute:      "",
+		// 						AttributeValue: "",
+		// 					},
+		// 					"link": {
+		// 						Tag:            "a",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "item-img",
+		// 						AttributeToGet: "href",
+		// 					},
+		// 					"outofstock": {
+		// 						Tag:            "i",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "item-promo-icon",
+		// 					},
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// },
 		{
-			name: "New egg Crawl Correctly - Product search page",
+			name: "Best Buy Crawl Correctly - Product search page",
 			w:    crawl,
 			args: args{
-				url: "https://www.newegg.com/p/pl?d=RTX+3080&LeftPriceRange=1000+2000&N=8000",
+				url: "https://www.bestbuy.com/site/searchpage.jsp?st=RTX+3080&_dyncharset=UTF-8&_dynSessConf=&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys",
 				ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
 					{
 						// ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
@@ -141,7 +200,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 						// },
 						FormatURLConfiguration: webscraper.FormatURLConfiguration{
 							PrefixExist: "/",
-							PrefixToAdd: "http://newegg.com",
+							PrefixToAdd: "http://bestbuy.com",
 						},
 					},
 				},
@@ -149,31 +208,38 @@ func TestWebCrawler_Crawl(t *testing.T) {
 					{
 						ItemName: "Graphics Cards",
 						ItemToGet: webscraper.ExtractFromHTMLConfiguration{
-							Tag:            "div",
+							Tag:            "li",
 							Attribute:      "class",
-							AttributeValue: "item-cell",
+							AttributeValue: "sku-item",
 						},
 						ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
 							"title": {
-								Tag:            "a",
+								Tag:            "h4",
 								Attribute:      "class",
-								AttributeValue: "item-title",
+								AttributeValue: "sku-header",
 							},
 							"price": {
-								Tag:            "strong",
-								Attribute:      "",
-								AttributeValue: "",
+								Tag:            "span",
+								Attribute:      "aria-hidden",
+								AttributeValue: "true",
 							},
 							"link": {
 								Tag:            "a",
-								Attribute:      "class",
-								AttributeValue: "item-img",
+								Attribute:      "",
+								AttributeValue: "",
 								AttributeToGet: "href",
 							},
-							"outofstock": {
-								Tag:            "i",
-								Attribute:      "class",
-								AttributeValue: "item-promo-icon",
+							"In stock": {
+								Tag:            "button",
+								AttributeToGet: "data-button-state",
+								AttributeValue: "button",
+								Attribute:      "disabled type",
+							},
+							"Out of stock": {
+								Tag:            "button",
+								AttributeToGet: "data-button-state",
+								AttributeValue: "button",
+								Attribute:      "type",
 							},
 						},
 					},
@@ -183,7 +249,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.w.Crawl(tt.args.url, 1, tt.args.ScrapeItemConfiguration, tt.args.ScrapeURLConfiguration...)
+			tt.w.Crawl(tt.args.url, urlToCrawl, duplicateUrls, 1, tt.args.ScrapeItemConfiguration, tt.args.ScrapeURLConfiguration...)
 		})
 	}
 }

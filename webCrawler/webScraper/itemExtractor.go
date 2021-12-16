@@ -8,6 +8,10 @@ import (
 	"golang.org/x/net/html"
 )
 
+var (
+	htmlSingletonTags = map[string]bool{}
+)
+
 //ScrapeItemConfiguration ...
 type ScrapeItemConfiguration struct {
 	ItemName    string
@@ -21,7 +25,7 @@ func ExtractItemWithScrapItemConfiguration(t html.Token, z *html.Tokenizer, url 
 	if itemTagsToCheck[t.Data] {
 		for _, scrapeItemConfiguration := range scrapeItemConfiguration {
 			HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(t, scrapeItemConfiguration.ItemToGet.Attribute)
-			if t.Data == scrapeItemConfiguration.ItemToGet.Tag && HTTPAttributeValueFromToken == scrapeItemConfiguration.ItemToGet.AttributeValue {
+			if (t.Data == scrapeItemConfiguration.ItemToGet.Tag && HTTPAttributeValueFromToken == scrapeItemConfiguration.ItemToGet.AttributeValue) || (scrapeItemConfiguration.ItemToGet.Attribute == "" && scrapeItemConfiguration.ItemToGet.AttributeValue == "") {
 				scrapeItemConfiguration.URL = url
 				parseTokenForItemDetails(t, z, scrapeItemConfiguration)
 				return nil
@@ -69,6 +73,7 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 						if itemDetails.AttributeToGet != "" {
 							HTTPAttributeValueFromToken, _ = getHTTPAttributeValueFromToken(currentToken, itemDetails.AttributeToGet)
 							item.ItemDetails[itemDetailName] = HTTPAttributeValueFromToken
+							continue
 						} else {
 							for tokenType != html.TextToken {
 								tokenType = z.Next()
@@ -76,6 +81,7 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 							currentToken = z.Token()
 							str := currentToken.String()
 							item.ItemDetails[itemDetailName] = str
+							continue
 						}
 					}
 				}
@@ -83,11 +89,12 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 		case tokenType == html.EndTagToken:
 			tagStack.pop()
 		case tokenType == html.ErrorToken:
-			item.printJSON()
+			tagStack.pop()
+			//item.printJSON()
 			return item, nil
 		}
 	}
-	item.printJSON()
+	//item.printJSON()
 	return item, nil
 }
 func isEmptyItemToGet(itemToget map[string]ExtractFromHTMLConfiguration) bool {

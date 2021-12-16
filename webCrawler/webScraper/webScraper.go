@@ -2,6 +2,7 @@ package webcrawler
 
 import (
 	"errors"
+	"log"
 
 	"golang.org/x/net/html"
 )
@@ -52,7 +53,7 @@ func (WebScraper) Scrape(url string, scrapeItemConfiguration []ScrapeItemConfigu
 		itemTagsToCheck map[string]bool
 		URLsToCheck     map[string]bool
 	)
-
+	log.Printf("Scraping link: %v", url)
 	URLsToCheck = make(map[string]bool)
 	response := ConnectToWebsite(url).Body
 	if !isEmptyScrapeURLConfiguration(scrapeURLConfiguration) {
@@ -84,14 +85,19 @@ func (WebScraper) Scrape(url string, scrapeItemConfiguration []ScrapeItemConfigu
 				if err != nil {
 					continue
 				}
-				ExtractedURLs = append(ExtractedURLs, extractedURL)
+				if extractedURL != "" {
+					ExtractedURLs = append(ExtractedURLs, extractedURL)
+				}
 			} else {
 				extractedURL, err := ExtractURLWithScrapURLConfiguration(t, URLsToCheck, urlTagsToCheck, scrapeURLConfiguration)
 				if err != nil {
 					continue
 				}
-				ExtractedURLs = append(ExtractedURLs, extractedURL)
+				if extractedURL != "" {
+					ExtractedURLs = append(ExtractedURLs, extractedURL)
+				}
 			}
+
 			if !isEmptyItem(scrapeItemConfiguration) {
 				err := ExtractItemWithScrapItemConfiguration(t, z, url, itemTagsToCheck, scrapeItemConfiguration)
 				if err != nil {

@@ -25,3 +25,11 @@ func (s *stack) pop() (html.Token, bool) {
 func (s *stack) print() {
 	log.Print(*s)
 }
+
+func (s *stack) printCount() {
+	log.Print(len(*s))
+}
+
+func (s *stack) length() int {
+	return len(*s)
+}

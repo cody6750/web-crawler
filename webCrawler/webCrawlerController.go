@@ -56,15 +56,11 @@ func testQueue() {
 //WebCrawlController ...
 func WebCrawlController() {
 	// var counter int
-	urlTocrawl := make(chan Queue, 1)
 	duplicateUrls := make(chan map[string]bool)
 	// quit := make(chan int, 1)
-	queueToPass := Queue{}
 	// var wg sync.WaitGroup
 	crawler := New()
-	urlTocrawl <- queueToPass
 	crawler.Crawl("https://www.bestbuy.com/site/searchpage.jsp?st=RTX+3080&_dyncharset=UTF-8&_dynSessConf=&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys",
-		urlTocrawl,
 		duplicateUrls,
 		2,
 		[]webscraper.ScrapeItemConfiguration{

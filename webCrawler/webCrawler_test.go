@@ -249,7 +249,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.w.Crawl(tt.args.url, urlToCrawl, duplicateUrls, 1, tt.args.ScrapeItemConfiguration, tt.args.ScrapeURLConfiguration...)
+			tt.w.Crawl(tt.args.url, duplicateUrls, 1, tt.args.ScrapeItemConfiguration, tt.args.ScrapeURLConfiguration...)
 		})
 	}
 }

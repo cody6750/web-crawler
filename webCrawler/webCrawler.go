@@ -4,20 +4,28 @@ import (
 	"errors"
 	"log"
 	"sync"
+	"time"
 
 	webscraper "github.com/cody6750/codywebapi/webCrawler/webScraper"
 )
 
+var (
+	errorMaxDepthBelowZero = errors.New("max Depth cannot be below 0, exiting")
+)
+
 //WebCrawler ...
 type WebCrawler struct {
-	scraper        *webscraper.WebScraper
-	listOfWebsites []string
-	name           string
+	listOfurl []string
+	name      string
 	// TODO: Turn this into []webscraper.URL
-	queue              chan []string
-	stop               chan struct{}
-	linkVisitedCounter chan int
-	VisitedLinkCounter int
+	stop chan struct{}
+
+	urlsToCrawl             chan string
+	pendingUrlsToCrawl      chan string
+	pendingUrlsToCrawlCount chan int
+
+	visitedUrlsCounter int
+	urlsFoundCounter   int
 	visited            map[string]struct{}
 	webScrapers        map[int]*webscraper.WebScraper
 	wg                 sync.WaitGroup
@@ -39,83 +47,110 @@ func NewWithOptions() *WebCrawler {
 
 //Init ...
 func (w *WebCrawler) Init() {
-	w.scraper = webscraper.New()
 	w.wg = *new(sync.WaitGroup)
-	//w.queue = make(chan []webscraper.URL)
-	w.queue = make(chan []string, 1)
-	w.stop = make(chan struct{}, 5)
+	w.stop = make(chan struct{})
 	w.visited = make(map[string]struct{})
 	w.webScrapers = make(map[int]*webscraper.WebScraper)
+
+	w.pendingUrlsToCrawl = make(chan string)
+	w.urlsToCrawl = make(chan string)
+	w.pendingUrlsToCrawlCount = make(chan int)
 }
 
 //Crawl ...
-func (w *WebCrawler) Crawl(url string, maxDepth int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
+func (w *WebCrawler) Crawl(url string, maxDepth int, scraperWorkerCount int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
 	w.Init()
-	w.enqueue(url)
+
+	go func() {
+		w.urlsToCrawl <- url
+	}()
 	if maxDepth < 0 {
-		return w.listOfWebsites, errors.New("max Depth cannot be below 0, exiting")
+		return w.listOfurl, errorMaxDepthBelowZero
 	}
 	if maxDepth == 0 {
-		return append(w.listOfWebsites, url), nil
+		return append(w.listOfurl, url), nil
 	}
-	w.listOfWebsites, _ = w.scraper.Scrape(url, itemsToget, ScrapeConfiguration...)
-	w.enqueueList(w.listOfWebsites)
-	scraperCount := 20
-	if maxDepth <= 1 {
-		for i := 0; i < scraperCount; i++ {
-			w.wg.Add(1)
-			go func(scraperNumber int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) {
-				defer w.wg.Done()
-				scraper, _ := w.launchWebScraper(scraperNumber, itemsToget, ScrapeConfiguration...)
-				w.webScrapers[scraperNumber] = scraper
-			}(i, itemsToget, ScrapeConfiguration...)
-		}
-		w.wg.Wait()
+
+	go w.ProcessCrawledLinks()
+
+	go w.MonitorCrawling()
+
+	for i := 0; i < scraperWorkerCount; i++ {
+		w.wg.Add(1)
+		go func(scraperNumber int) {
+			defer w.wg.Done()
+			scraper, _ := w.launchWebScraper(scraperNumber, maxDepth, itemsToget, ScrapeConfiguration...)
+			w.webScrapers[scraperNumber] = scraper
+		}(i)
 	}
-	return w.listOfWebsites, nil
+	w.wg.Wait()
+
+	return w.listOfurl, nil
 }
 
-func (w *WebCrawler) launchWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
+func (w *WebCrawler) launchWebScraper(scraperNumber int, maxDepth int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
 	wgg := new(sync.WaitGroup)
 	webscraper := &webscraper.WebScraper{
 		Host:          w.name,
 		ScraperNumber: scraperNumber,
-		Queue:         w.queue,
 		Stop:          w.stop,
 		Visited:       w.visited,
 		Wg:            *wgg,
 	}
-	log.Print(scraperNumber)
+	delay := time.Duration(100000000)
 	for {
 		select {
-		case urlsToParse := <-w.queue:
-			for _, urls := range urlsToParse {
-				// if w.VisitedLinkCounter > 20 {
-				// 	break
-				// }
-				if _, visited := w.visited[urls]; !visited {
-					webscraper.Wg.Add(1)
-					go func(urls string, scrapNumber int) {
-						defer webscraper.Wg.Done()
-						w.VisitedLinkCounter++
-						log.Printf("Go routine:%v | Crawling link: %v | Counter Link: %v", scraperNumber, urls, w.VisitedLinkCounter)
-						scraperWebsiteList, _ := w.scraper.Scrape(urls, itemsToget, ScrapeConfiguration...)
-						w.enqueueList(scraperWebsiteList)
-						w.processURL(urls)
-					}(urls, scraperNumber)
-				}
+		case url := <-w.urlsToCrawl:
+			go func() {
+				scrapedUrls, _ := webscraper.Scrape(url, itemsToget, ScrapeConfiguration...)
+				w.processScrapedUrls(scrapedUrls)
+				w.urlsFoundCounter += len(scrapedUrls)
+				w.visitedUrlsCounter++
+				log.Printf("Go routine:%v | Crawling link: %v | Counter Link: %v | Url Found : %v", scraperNumber, url, w.visitedUrlsCounter, w.urlsFoundCounter)
+				w.pendingUrlsToCrawlCount <- -1
+			}()
+			if delay != 0 {
+				time.Sleep(delay)
 			}
-			webscraper.Wg.Wait()
-			webscraper.Stop <- struct{}{}
-		case <-webscraper.Stop:
-			log.Print("exiting webscraper")
+		case <-w.stop:
 			return webscraper, nil
 		}
 	}
 }
 
-func (w *WebCrawler) processURL(url string) {
-	w.visited[url] = struct{}{}
+func (w *WebCrawler) processScrapedUrls(scrapedUrls []string) {
+	for _, url := range scrapedUrls {
+		w.pendingUrlsToCrawl <- url
+		w.pendingUrlsToCrawlCount <- 1
+	}
+}
+
+//ProcessCrawledLinks ...
+func (w *WebCrawler) ProcessCrawledLinks() {
+	for {
+		select {
+		case url := <-w.pendingUrlsToCrawl:
+			_, visited := w.visited[url]
+			if !visited {
+				w.visited[url] = struct{}{}
+				w.urlsToCrawl <- url
+			}
+		}
+	}
+}
+
+//MonitorCrawling ...
+func (w *WebCrawler) MonitorCrawling() {
+	var c int
+	for count := range w.pendingUrlsToCrawlCount {
+		c += count
+		if c == 0 {
+			close(w.urlsToCrawl)
+			close(w.pendingUrlsToCrawl)
+			close(w.pendingUrlsToCrawlCount)
+			w.stop <- struct{}{}
+		}
+	}
 }
 
 /*
@@ -126,21 +161,3 @@ Bufferd Channel:
 In an buffered channel, the send and recieve are able to still send without the other operation being ready due to the buffer/capacity of the channel. It is able to hold that operation until it is called. Thus The select statement can execute.
 https://stackoverflow.com/questions/47525250/in-the-go-select-construct-can-i-have-send-and-receive-to-unbuffered-channel-in
 */
-
-func (w *WebCrawler) enqueueList(list []string) {
-	toStack := list
-	for {
-		select {
-		case w.queue <- toStack:
-			return
-		case oldStack := <-w.queue:
-			toStack = append(oldStack, toStack...)
-		}
-	}
-}
-
-func (w *WebCrawler) enqueue(url string) {
-	var toStack []string
-	toStack = append(toStack, url)
-	w.queue <- toStack
-}

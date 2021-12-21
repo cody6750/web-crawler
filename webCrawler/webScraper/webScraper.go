@@ -2,7 +2,7 @@ package webcrawler
 
 import (
 	"errors"
-	"log"
+	"sync"
 
 	"golang.org/x/net/html"
 )
@@ -17,6 +17,12 @@ var (
 
 //WebScraper ...
 type WebScraper struct {
+	Host          string
+	ScraperNumber int
+	Queue         chan []string
+	Stop          chan struct{}
+	Visited       map[string]struct{}
+	Wg            sync.WaitGroup
 }
 
 //ScrapeURLConfiguration ...
@@ -53,7 +59,7 @@ func (WebScraper) Scrape(url string, scrapeItemConfiguration []ScrapeItemConfigu
 		itemTagsToCheck map[string]bool
 		URLsToCheck     map[string]bool
 	)
-	log.Printf("Scraping link: %v", url)
+	//log.Printf("Scraping link: %v", url)
 	URLsToCheck = make(map[string]bool)
 	response := ConnectToWebsite(url).Body
 	if !isEmptyScrapeURLConfiguration(scrapeURLConfiguration) {

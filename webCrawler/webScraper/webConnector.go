@@ -14,6 +14,7 @@ func ConnectToWebsite(WebPageURL string) *http.Response {
 	//GET request to domain for HTML response
 	request, err := http.NewRequest("GET", WebPageURL, nil)
 	if err != nil {
+		log.Print("Fatal connecting")
 		log.Fatal(err)
 	}
 	// Set header as User-Agent so the server admins don't block our IP address from HTTP requests
@@ -22,6 +23,7 @@ func ConnectToWebsite(WebPageURL string) *http.Response {
 	// Make HTTP request
 	response, err := client.Do(request)
 	if err != nil {
+		log.Print("Fatal connecting")
 		log.Fatal(err)
 	}
 	return response

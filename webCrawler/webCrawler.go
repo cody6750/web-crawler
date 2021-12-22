@@ -2,7 +2,9 @@ package webcrawler
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"runtime"
 	"sync"
 	"time"
 
@@ -11,24 +13,24 @@ import (
 
 var (
 	errorMaxDepthBelowZero = errors.New("max Depth cannot be below 0, exiting")
+	errorHealthCheck       = errors.New("Health check has failed")
+	errorLivenessCheck     = errors.New("Liveness check has failed")
 )
 
 //WebCrawler ...
 type WebCrawler struct {
-	listOfurl []string
-	name      string
+	name string
 	// TODO: Turn this into []webscraper.URL
-	stop chan struct{}
-
-	urlsToCrawl             chan string
-	pendingUrlsToCrawl      chan string
 	pendingUrlsToCrawlCount chan int
-
-	visitedUrlsCounter int
-	urlsFoundCounter   int
-	visited            map[string]struct{}
-	webScrapers        map[int]*webscraper.WebScraper
-	wg                 sync.WaitGroup
+	pendingUrlsToCrawl      chan string
+	urlsToCrawl             chan string
+	stop                    chan struct{}
+	urlsFoundCounter        int
+	visitedUrlsCounter      int
+	visited                 map[string]struct{}
+	webScrapers             map[int]*webscraper.WebScraper
+	wg                      sync.WaitGroup
+	mutex                   sync.Mutex
 }
 
 //New ...
@@ -46,73 +48,102 @@ func NewWithOptions() *WebCrawler {
 }
 
 //Init ...
-func (w *WebCrawler) Init() {
-	w.wg = *new(sync.WaitGroup)
+func (w *WebCrawler) init() {
+	w.pendingUrlsToCrawlCount = make(chan int)
+	w.pendingUrlsToCrawl = make(chan string)
+	w.urlsToCrawl = make(chan string)
 	w.stop = make(chan struct{})
 	w.visited = make(map[string]struct{})
 	w.webScrapers = make(map[int]*webscraper.WebScraper)
-
-	w.pendingUrlsToCrawl = make(chan string)
-	w.urlsToCrawl = make(chan string)
-	w.pendingUrlsToCrawlCount = make(chan int)
+	w.wg = *new(sync.WaitGroup)
 }
 
 //Crawl ...
 func (w *WebCrawler) Crawl(url string, maxDepth int, scraperWorkerCount int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
-	w.Init()
+	w.init()
 
 	go func() {
 		w.urlsToCrawl <- url
 	}()
 	if maxDepth < 0 {
-		return w.listOfurl, errorMaxDepthBelowZero
+		return nil, errorMaxDepthBelowZero
 	}
 	if maxDepth == 0 {
-		return append(w.listOfurl, url), nil
+		return append([]string{}, url), nil
 	}
 
-	go w.ProcessCrawledLinks()
+	go w.processCrawledLinks()
 
-	go w.MonitorCrawling()
+	go w.monitorCrawling()
 
 	for i := 0; i < scraperWorkerCount; i++ {
 		w.wg.Add(1)
 		go func(scraperNumber int) {
 			defer w.wg.Done()
-			scraper, _ := w.launchWebScraper(scraperNumber, maxDepth, itemsToget, ScrapeConfiguration...)
-			w.webScrapers[scraperNumber] = scraper
+			w.runWebScraper(scraperNumber, maxDepth, itemsToget, ScrapeConfiguration...)
 		}(i)
+	}
+
+	err := w.readinessCheck(scraperWorkerCount)
+	if err != nil {
+		log.Print("Readiness check failed")
+		return nil, err
+	}
+
+	go func() {
+		err = w.livenessCheck(scraperWorkerCount)
+	}()
+	if err != nil {
+		log.Print("Liveness check failed")
+		return nil, err
 	}
 	w.wg.Wait()
 
-	return w.listOfurl, nil
+	return []string{}, nil
 }
 
-func (w *WebCrawler) launchWebScraper(scraperNumber int, maxDepth int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
+func (w *WebCrawler) runWebScraper(scraperNumber int, maxDepth int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
 	wgg := new(sync.WaitGroup)
 	webscraper := &webscraper.WebScraper{
 		Host:          w.name,
 		ScraperNumber: scraperNumber,
 		Stop:          w.stop,
-		Visited:       w.visited,
 		Wg:            *wgg,
 	}
-	delay := time.Duration(100000000)
+
+	w.mutex.Lock()
+	w.webScrapers[scraperNumber] = webscraper
+	w.mutex.Unlock()
+
+	maxVisitedUrls := 200000
+	delay := 2
 	for {
 		select {
 		case url := <-w.urlsToCrawl:
+			// Options: Ability to delay the execution of scraper
+			if numGoRoutine := runtime.NumGoroutine(); numGoRoutine > 30 {
+				continue
+			}
+			if delay != 0 {
+				time.Sleep(time.Second * time.Duration(delay))
+			}
+			// Options: Ability to cap the number of urls scraped
+			if maxVisitedUrls != 0 && maxVisitedUrls < w.visitedUrlsCounter {
+				log.Print("Max urls hit... exiting")
+				w.stopAllWebCrawlers()
+			}
+			// TODO: If scraper is timing out, stop that scraper object from scraping. Use stopWebCrawler() to stop specific instances of webcrawler
+			webscraper.Wg.Add(1)
 			go func() {
+				defer webscraper.Wg.Done()
 				scrapedUrls, _ := webscraper.Scrape(url, itemsToget, ScrapeConfiguration...)
 				w.processScrapedUrls(scrapedUrls)
 				w.urlsFoundCounter += len(scrapedUrls)
 				w.visitedUrlsCounter++
-				log.Printf("Go routine:%v | Crawling link: %v | Counter Link: %v | Url Found : %v", scraperNumber, url, w.visitedUrlsCounter, w.urlsFoundCounter)
-				w.pendingUrlsToCrawlCount <- -1
+				log.Printf("Go routine:%v | Crawling link: %v | Counter Link: %v | Url Found : %v Scraper Url : %v", scraperNumber, url, w.visitedUrlsCounter, w.urlsFoundCounter, scrapedUrls)
 			}()
-			if delay != 0 {
-				time.Sleep(delay)
-			}
-		case <-w.stop:
+		case <-webscraper.Stop:
+			webscraper.Wg.Wait()
 			return webscraper, nil
 		}
 	}
@@ -125,8 +156,8 @@ func (w *WebCrawler) processScrapedUrls(scrapedUrls []string) {
 	}
 }
 
-//ProcessCrawledLinks ...
-func (w *WebCrawler) ProcessCrawledLinks() {
+//processCrawledLinks ...
+func (w *WebCrawler) processCrawledLinks() {
 	for {
 		select {
 		case url := <-w.pendingUrlsToCrawl:
@@ -139,17 +170,66 @@ func (w *WebCrawler) ProcessCrawledLinks() {
 	}
 }
 
-//MonitorCrawling ...
-func (w *WebCrawler) MonitorCrawling() {
+//monitorCrawling ...
+func (w *WebCrawler) monitorCrawling() {
 	var c int
 	for count := range w.pendingUrlsToCrawlCount {
 		c += count
 		if c == 0 {
+			w.stopAllWebCrawlers()
 			close(w.urlsToCrawl)
 			close(w.pendingUrlsToCrawl)
 			close(w.pendingUrlsToCrawlCount)
-			w.stop <- struct{}{}
 		}
+	}
+}
+
+func (w *WebCrawler) stopWebCrawler(scraperNumbers []int) {
+	for _, scraperNumber := range scraperNumbers {
+		if scraper, scraperExist := w.webScrapers[scraperNumber]; scraperExist {
+			w.wg.Add(1)
+			go func(scraper webscraper.WebScraper) {
+				defer w.wg.Done()
+				scraper.Stop <- struct{}{}
+			}(*scraper)
+		}
+	}
+	w.wg.Wait()
+}
+
+func (w *WebCrawler) stopAllWebCrawlers() {
+	for _, scraper := range w.webScrapers {
+		w.wg.Add(1)
+		go func(scraper webscraper.WebScraper) {
+			defer w.wg.Done()
+			scraper.Stop <- struct{}{}
+		}(*scraper)
+	}
+	w.wg.Wait()
+}
+
+// readinessCheck ensures that the specified number of webscraper workers have start up correctly which indicates that the crawler has started up correctly and are ready to scrape.
+func (w *WebCrawler) readinessCheck(scraperWorkerCount int) error {
+	time.Sleep(time.Second * 20)
+	if len(w.webScrapers) != scraperWorkerCount {
+		log.Printf("Failed health check, number of web scrapers: %v is below threshold: %v", len(w.webScrapers), scraperWorkerCount)
+		return errorHealthCheck
+	}
+	return nil
+}
+
+func (w *WebCrawler) livenessCheck(threshold int) error {
+	threshold *= 2
+	for {
+		time.Sleep(time.Second * 10)
+		numGoRoutine := runtime.NumGoroutine()
+		if numGoRoutine < threshold {
+			log.Printf("Failed health check, number of go routines: %v is below threshold: %v", numGoRoutine, threshold)
+			return errorLivenessCheck
+		}
+		var stats runtime.MemStats
+		runtime.ReadMemStats(&stats)
+		fmt.Printf("HeapAlloc=%02fMB; Sys=%02fMB\n", float64(stats.HeapAlloc)/1024.0/1024.0, float64(stats.Sys)/1024.0/1024.0)
 	}
 }
 

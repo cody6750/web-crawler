@@ -21,7 +21,6 @@ type WebScraper struct {
 	ScraperNumber int
 	Queue         chan []string
 	Stop          chan struct{}
-	Visited       map[string]struct{}
 	Wg            sync.WaitGroup
 }
 

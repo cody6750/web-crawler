@@ -52,7 +52,7 @@ func (w *WebCrawler) init() {
 	w.pendingUrlsToCrawlCount = make(chan int)
 	w.pendingUrlsToCrawl = make(chan string)
 	w.urlsToCrawl = make(chan string)
-	w.stop = make(chan struct{})
+	w.stop = make(chan struct{}, 30)
 	w.visited = make(map[string]struct{})
 	w.webScrapers = make(map[int]*webscraper.WebScraper)
 	w.wg = *new(sync.WaitGroup)
@@ -115,7 +115,7 @@ func (w *WebCrawler) runWebScraper(scraperNumber int, maxDepth int, itemsToget [
 	w.webScrapers[scraperNumber] = webscraper
 	w.mutex.Unlock()
 
-	maxVisitedUrls := 200000
+	maxVisitedUrls := 10
 	delay := 2
 	for {
 		select {
@@ -130,7 +130,8 @@ func (w *WebCrawler) runWebScraper(scraperNumber int, maxDepth int, itemsToget [
 			// Options: Ability to cap the number of urls scraped
 			if maxVisitedUrls != 0 && maxVisitedUrls < w.visitedUrlsCounter {
 				log.Print("Max urls hit... exiting")
-				w.stopAllWebCrawlers()
+				webscraper.Wg.Wait()
+				return webscraper, nil
 			}
 			// TODO: If scraper is timing out, stop that scraper object from scraping. Use stopWebCrawler() to stop specific instances of webcrawler
 			webscraper.Wg.Add(1)
@@ -140,7 +141,7 @@ func (w *WebCrawler) runWebScraper(scraperNumber int, maxDepth int, itemsToget [
 				w.processScrapedUrls(scrapedUrls)
 				w.urlsFoundCounter += len(scrapedUrls)
 				w.visitedUrlsCounter++
-				log.Printf("Go routine:%v | Crawling link: %v | Counter Link: %v | Url Found : %v Scraper Url : %v", scraperNumber, url, w.visitedUrlsCounter, w.urlsFoundCounter, scrapedUrls)
+				log.Printf("Go routine:%v | Crawling link: %v | Counter Link: %v | Url Found : %v", scraperNumber, url, w.visitedUrlsCounter, w.urlsFoundCounter)
 			}()
 		case <-webscraper.Stop:
 			webscraper.Wg.Wait()

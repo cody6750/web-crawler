@@ -26,6 +26,5 @@ func ConnectToWebsite(WebPageURL string) *http.Response {
 		log.Print("Fatal connecting")
 		log.Fatal(err)
 	}
-	log.Print(response.Body)
 	return response
 }

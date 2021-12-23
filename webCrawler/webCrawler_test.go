@@ -130,74 +130,21 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 		},
 		// 	},
 		// },
-		{
-			name: "New egg Crawl Correctly - Product search page",
-			w:    crawl,
-			args: args{
-				url: "https://www.newegg.com/p/pl?d=rtx+3080&LeftPriceRange=1000+",
-				ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
-					{
-						// ExtractFromHTMLConfiguration: webscraper.ExtractFromHTMLConfiguration{
-						// 	Attribute:      "class",
-						// 	AttributeValue: "a-link-normal",
-						// 	Tag:            "a",
-						// },
-						FormatURLConfiguration: webscraper.FormatURLConfiguration{
-							PrefixExist: "/",
-							PrefixToAdd: "http://",
-						},
-					},
-				},
-				ScrapeItemConfiguration: []webscraper.ScrapeItemConfiguration{
-					{
-						ItemName: "Graphics Cards",
-						ItemToGet: webscraper.ExtractFromHTMLConfiguration{
-							Tag:            "div",
-							Attribute:      "class",
-							AttributeValue: "item-cell",
-						},
-						ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
-							"title": {
-								Tag:            "a",
-								Attribute:      "class",
-								AttributeValue: "item-title",
-							},
-							"price": {
-								Tag:            "strong",
-								Attribute:      "",
-								AttributeValue: "",
-							},
-							"link": {
-								Tag:            "a",
-								Attribute:      "class",
-								AttributeValue: "item-img",
-								AttributeToGet: "href",
-							},
-							"outofstock": {
-								Tag:            "i",
-								Attribute:      "class",
-								AttributeValue: "item-promo-icon",
-							},
-						},
-					},
-				},
-			},
-		},
 		// {
-		// 	name: "Best Buy Crawl Correctly - Product search page",
+		// 	name: "New egg Crawl Correctly - Product search page",
 		// 	w:    crawl,
 		// 	args: args{
-		// 		url: "https://www.bestbuy.com/site/searchpage.jsp?st=RTX+3080&_dyncharset=UTF-8&_dynSessConf=&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys",
+		// 		url: "https://www.newegg.com/p/pl?d=rtx+3080&LeftPriceRange=1000+",
 		// 		ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
 		// 			{
-		// 				// ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
+		// 				// ExtractFromHTMLConfiguration: webscraper.ExtractFromHTMLConfiguration{
 		// 				// 	Attribute:      "class",
 		// 				// 	AttributeValue: "a-link-normal",
 		// 				// 	Tag:            "a",
 		// 				// },
 		// 				FormatURLConfiguration: webscraper.FormatURLConfiguration{
 		// 					PrefixExist: "/",
-		// 					PrefixToAdd: "http://bestbuy.com",
+		// 					PrefixToAdd: "http:",
 		// 				},
 		// 			},
 		// 		},
@@ -205,44 +152,97 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 			{
 		// 				ItemName: "Graphics Cards",
 		// 				ItemToGet: webscraper.ExtractFromHTMLConfiguration{
-		// 					Tag:            "li",
+		// 					Tag:            "div",
 		// 					Attribute:      "class",
-		// 					AttributeValue: "sku-item",
+		// 					AttributeValue: "item-cell",
 		// 				},
 		// 				ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
 		// 					"title": {
-		// 						Tag:            "h4",
+		// 						Tag:            "a",
 		// 						Attribute:      "class",
-		// 						AttributeValue: "sku-header",
+		// 						AttributeValue: "item-title",
 		// 					},
 		// 					"price": {
-		// 						Tag:            "span",
-		// 						Attribute:      "aria-hidden",
-		// 						AttributeValue: "true",
+		// 						Tag:            "strong",
+		// 						Attribute:      "",
+		// 						AttributeValue: "",
 		// 					},
 		// 					"link": {
 		// 						Tag:            "a",
-		// 						Attribute:      "",
-		// 						AttributeValue: "",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "item-img",
 		// 						AttributeToGet: "href",
 		// 					},
-		// 					"In stock": {
-		// 						Tag:            "button",
-		// 						AttributeToGet: "data-button-state",
-		// 						AttributeValue: "button",
-		// 						Attribute:      "disabled type",
-		// 					},
-		// 					"Out of stock": {
-		// 						Tag:            "button",
-		// 						AttributeToGet: "data-button-state",
-		// 						AttributeValue: "button",
-		// 						Attribute:      "type",
+		// 					"outofstock": {
+		// 						Tag:            "i",
+		// 						Attribute:      "class",
+		// 						AttributeValue: "item-promo-icon",
 		// 					},
 		// 				},
 		// 			},
 		// 		},
 		// 	},
 		// },
+		{
+			name: "Best Buy Crawl Correctly - Product search page",
+			w:    crawl,
+			args: args{
+				url: "https://www.bestbuy.com/site/searchpage.jsp?st=RTX+3080&_dyncharset=UTF-8&_dynSessConf=&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys",
+				ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
+					{
+						// ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
+						// 	Attribute:      "class",
+						// 	AttributeValue: "a-link-normal",
+						// 	Tag:            "a",
+						// },
+						FormatURLConfiguration: webscraper.FormatURLConfiguration{
+							PrefixExist: "/",
+							PrefixToAdd: "http://bestbuy.com",
+						},
+					},
+				},
+				ScrapeItemConfiguration: []webscraper.ScrapeItemConfiguration{
+					{
+						ItemName: "Graphics Cards",
+						ItemToGet: webscraper.ExtractFromHTMLConfiguration{
+							Tag:            "li",
+							Attribute:      "class",
+							AttributeValue: "sku-item",
+						},
+						ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
+							"title": {
+								Tag:            "h4",
+								Attribute:      "class",
+								AttributeValue: "sku-header",
+							},
+							"price": {
+								Tag:            "span",
+								Attribute:      "aria-hidden",
+								AttributeValue: "true",
+							},
+							"link": {
+								Tag:            "a",
+								Attribute:      "",
+								AttributeValue: "",
+								AttributeToGet: "href",
+							},
+							"In stock": {
+								Tag:            "button",
+								AttributeToGet: "data-button-state",
+								AttributeValue: "button",
+								Attribute:      "disabled type",
+							},
+							"Out of stock": {
+								Tag:            "button",
+								AttributeToGet: "data-button-state",
+								AttributeValue: "button",
+								Attribute:      "type",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

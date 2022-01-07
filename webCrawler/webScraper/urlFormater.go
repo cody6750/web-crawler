@@ -7,7 +7,7 @@ import (
 )
 
 func formatURL(url string, formatURLConfig FormatURLConfiguration) (string, error) {
-	if isEmptyFormatURLConfiguration(formatURLConfig) {
+	if IsEmpty(formatURLConfig) {
 		log.Print("formatURLConfig is empty")
 		return url, nil
 	}
@@ -31,8 +31,4 @@ func formatURL(url string, formatURLConfig FormatURLConfiguration) (string, erro
 		return "", errors.New("Does not match")
 	}
 	return url, nil
-}
-
-func isEmptyFormatURLConfiguration(formatURLConfiguration FormatURLConfiguration) bool {
-	return formatURLConfiguration == (FormatURLConfiguration{})
 }

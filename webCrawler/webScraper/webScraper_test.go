@@ -283,7 +283,7 @@ func Test_isEmptyFormatURLConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isEmptyFormatURLConfiguration(tt.args.formatURLConfiguration); got != tt.want {
+			if got := IsEmpty(tt.args.formatURLConfiguration); got != tt.want {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("isEmptyFormatURLConfiguration() = %v, want %v", got, tt.want)
 			} else {
@@ -323,7 +323,7 @@ func Test_isEmptyExtractFromHTMLConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isEmptyExtractFromHTMLConfiguration(tt.args.extractFromHTMLConfiguration); got != tt.want {
+			if got := IsEmpty(tt.args.extractFromHTMLConfiguration); got != tt.want {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("isEmptyExtractFromHTMLConfiguration() = test name:%v ,%v, want %v", tt.name, got, tt.want)
 			} else {
@@ -365,7 +365,7 @@ func Test_isEmptyScrapeURLConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isEmptyScrapeURLConfiguration(tt.args.s); got != tt.want {
+			if got := IsEmpty(tt.args.s); got != tt.want {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("isEmptyScrapeURLConfiguration() = %v, want %v", got, tt.want)
 			} else {

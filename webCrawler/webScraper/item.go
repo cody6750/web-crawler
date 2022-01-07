@@ -3,12 +3,13 @@ package webcrawler
 import (
 	"encoding/json"
 	"log"
+	"strings"
 )
 
 //Item ...
 type Item struct {
 	ItemName    string
-	URL         string
+	URL         *URL
 	TimeQueried string
 	DateQueried string
 	ItemDetails map[string]string
@@ -16,5 +17,9 @@ type Item struct {
 
 func (i *Item) printJSON() {
 	json, _ := json.MarshalIndent(i, "", "    ")
-	log.Print("\n" + string(json))
+	output := string(json)
+	output = strings.Replace(output, "\\u003c", "<", -1)
+	output = strings.Replace(output, "\\u003e", ">", -1)
+	output = strings.Replace(output, "\\u0026", "&", -1)
+	log.Print("\n" + string(output))
 }

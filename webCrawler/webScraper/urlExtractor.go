@@ -26,7 +26,7 @@ func ExtractURL(t html.Token, URLsToCheck map[string]bool) (string, error) {
 func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bool, TagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfiguration) (string, error) {
 	var ExtractedURL string
 	for _, scrapeURLConfiguration := range scrapeURLConfiguration {
-		if !isEmptyExtractFromHTMLConfiguration(scrapeURLConfiguration.ExtractFromHTMLConfiguration) {
+		if !IsEmpty(scrapeURLConfiguration.ExtractFromHTMLConfiguration) {
 			if _, tagExist := TagsToCheck[t.Data]; tagExist {
 				ExtractedURL, _ = extractURLFromHTMLUsingConfiguration(t, scrapeURLConfiguration.ExtractFromHTMLConfiguration)
 			}
@@ -36,7 +36,7 @@ func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bo
 		if ExtractedURL == "" {
 			continue
 		}
-		if !isEmptyFormatURLConfiguration(scrapeURLConfiguration.FormatURLConfiguration) {
+		if !IsEmpty(scrapeURLConfiguration.FormatURLConfiguration) {
 			formatedURL, err := formatURL(ExtractedURL, scrapeURLConfiguration.FormatURLConfiguration)
 			if err != nil {
 				continue
@@ -55,7 +55,7 @@ func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bo
 	return "", nil
 }
 func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFromHTMLConfiguration) (string, error) {
-	if isEmptyExtractFromHTMLConfiguration(urlConfig) {
+	if IsEmpty(urlConfig) {
 		log.Print("is empty")
 		return "", errExtractURLFromHTMLUsingConfiguration
 	}
@@ -81,10 +81,6 @@ func extractURLFromHTML(token html.Token) (string, error) {
 		return hrefValue, errExtractURLFromHTML
 	}
 	return hrefValue, nil
-}
-
-func isEmptyExtractFromHTMLConfiguration(extractFromHTMLConfiguration ExtractFromHTMLConfiguration) bool {
-	return extractFromHTMLConfiguration == (ExtractFromHTMLConfiguration{})
 }
 
 func isEmptyToken(token html.Token) bool {

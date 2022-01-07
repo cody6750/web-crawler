@@ -8,33 +8,25 @@ import (
 	"golang.org/x/net/html"
 )
 
-var (
-	htmlSingletonTags = map[string]bool{}
-)
-
 //ScrapeItemConfiguration ...
 type ScrapeItemConfiguration struct {
 	ItemName    string
-	URL         string
 	ItemToGet   ExtractFromHTMLConfiguration
 	ItemDetails map[string]ExtractFromHTMLConfiguration
 }
 
 //ExtractItemWithScrapItemConfiguration ...
-func ExtractItemWithScrapItemConfiguration(t html.Token, z *html.Tokenizer, url string, itemTagsToCheck map[string]bool, scrapeItemConfiguration []ScrapeItemConfiguration) error {
+func ExtractItemWithScrapItemConfiguration(t html.Token, z *html.Tokenizer, itemTagsToCheck map[string]bool, scrapeItemConfiguration []ScrapeItemConfiguration) (Item, error) {
 	if itemTagsToCheck[t.Data] {
 		for _, scrapeItemConfiguration := range scrapeItemConfiguration {
 			HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(t, scrapeItemConfiguration.ItemToGet.Attribute)
 			if (t.Data == scrapeItemConfiguration.ItemToGet.Tag && HTTPAttributeValueFromToken == scrapeItemConfiguration.ItemToGet.AttributeValue) || (scrapeItemConfiguration.ItemToGet.Attribute == "" && scrapeItemConfiguration.ItemToGet.AttributeValue == "") {
-				scrapeItemConfiguration.URL = url
-				parseTokenForItemDetails(t, z, scrapeItemConfiguration)
-				return nil
+				extractedItem, _ := parseTokenForItemDetails(t, z, scrapeItemConfiguration)
+				return extractedItem, nil
 			}
 		}
-	} else {
-		return nil
 	}
-	return nil
+	return Item{}, errors.New("")
 }
 
 func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemConfiguration ScrapeItemConfiguration) (Item, error) {
@@ -46,7 +38,6 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 		item                  Item = Item{
 			ItemName:    scrapeItemConfiguration.ItemName,
 			ItemDetails: make(map[string]string),
-			URL:         scrapeItemConfiguration.URL,
 			DateQueried: strings.Split(time.Now().String(), " ")[0],
 			TimeQueried: strings.Split(time.Now().String(), " ")[1],
 		}
@@ -94,15 +85,12 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 			return item, nil
 		}
 	}
-	//item.printJSON()
+	// /item.printJSON()
 	return item, nil
-}
-func isEmptyItemToGet(itemToget map[string]ExtractFromHTMLConfiguration) bool {
-	return len(itemToget) == 0
 }
 
 func generateItemDetailsTagsToCheckMap(itemDetailTagsToCheck map[string]bool, scrapeItemConfiguration ScrapeItemConfiguration) (map[string]bool, error) {
-	if isEmptyItemToGet(scrapeItemConfiguration.ItemDetails) {
+	if IsEmpty(scrapeItemConfiguration.ItemDetails) {
 		return nil, errors.New("Item is empty")
 	}
 	for _, item := range scrapeItemConfiguration.ItemDetails {

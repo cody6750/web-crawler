@@ -7,9 +7,6 @@ import (
 )
 
 func TestWebCrawler_Crawl(t *testing.T) {
-	urlToCrawl := make(chan Queue, 500)
-	q := Queue{}
-	urlToCrawl <- q
 	crawl := New()
 	type args struct {
 		url                     string
@@ -246,7 +243,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.w.Crawl(tt.args.url, 1, 5, tt.args.ScrapeItemConfiguration, tt.args.ScrapeURLConfiguration...)
+			tt.w.Crawl(tt.args.url, tt.args.ScrapeItemConfiguration, tt.args.ScrapeURLConfiguration...)
 		})
 	}
 }

@@ -3,11 +3,14 @@ package webcrawler
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
+	options "github.com/cody6750/codywebapi/webCrawler/options"
 	webscraper "github.com/cody6750/codywebapi/webCrawler/webScraper"
 )
 
@@ -17,41 +20,49 @@ var (
 	errorLivenessCheck     = errors.New("Liveness check has failed")
 )
 
+// Metrics ...
+type Metrics struct {
+	urlsFound   int
+	urlsVisited int
+	itemsFound  int
+}
+
 //WebCrawler ...
 type WebCrawler struct {
-	name string
+	rootURL string
 	// TODO: Turn this into []webscraper.URL
 	pendingUrlsToCrawlCount chan int
-	pendingUrlsToCrawl      chan string
-	urlsToCrawl             chan string
+	pendingUrlsToCrawl      chan *webscraper.URL
+	urlsToCrawl             chan *webscraper.URL
 	stop                    chan struct{}
-	urlsFoundCounter        int
-	visitedUrlsCounter      int
+	metrics                 Metrics
 	visited                 map[string]struct{}
 	webScrapers             map[int]*webscraper.WebScraper
 	wg                      sync.WaitGroup
-	mutex                   sync.Mutex
+	mapLock                 sync.Mutex
+	metricsLock             sync.Mutex
+	test                    map[string]interface{}
+	options                 *options.Options
 }
 
 //New ...
-// TODO: ADD OPTIONS. New will create a webcrawler with default options
 func New() *WebCrawler {
-	crawler := &WebCrawler{}
-	return crawler
+	return NewWithOptions(options.New())
 }
 
 //NewWithOptions ...
-// TODO: ADDO OPTIONS. New with options will create a webcrawler with overrided options.
-func NewWithOptions() *WebCrawler {
+func NewWithOptions(options *options.Options) *WebCrawler {
 	crawler := &WebCrawler{}
+	crawler.init()
+	crawler.options = options
 	return crawler
 }
 
 //Init ...
 func (w *WebCrawler) init() {
 	w.pendingUrlsToCrawlCount = make(chan int)
-	w.pendingUrlsToCrawl = make(chan string)
-	w.urlsToCrawl = make(chan string)
+	w.pendingUrlsToCrawl = make(chan *webscraper.URL)
+	w.urlsToCrawl = make(chan *webscraper.URL)
 	w.stop = make(chan struct{}, 30)
 	w.visited = make(map[string]struct{})
 	w.webScrapers = make(map[int]*webscraper.WebScraper)
@@ -59,98 +70,113 @@ func (w *WebCrawler) init() {
 }
 
 //Crawl ...
-func (w *WebCrawler) Crawl(url string, maxDepth int, scraperWorkerCount int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
-	w.init()
-
+func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
+	w.rootURL = url
+	w.initRobotsTxtRestrictions(url)
+	return []string{}, nil
 	go func() {
-		w.urlsToCrawl <- url
+		w.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: w.options.MaxDepth}})
 	}()
-	if maxDepth < 0 {
+	if w.options.MaxDepth < 0 {
 		return nil, errorMaxDepthBelowZero
-	}
-	if maxDepth == 0 {
-		return append([]string{}, url), nil
 	}
 
 	go w.processCrawledLinks()
 
 	go w.monitorCrawling()
 
-	for i := 0; i < scraperWorkerCount; i++ {
+	for i := 0; i < w.options.WebScraperWorkerCount; i++ {
 		w.wg.Add(1)
 		go func(scraperNumber int) {
 			defer w.wg.Done()
-			w.runWebScraper(scraperNumber, maxDepth, itemsToget, ScrapeConfiguration...)
+			w.runWebScraper(scraperNumber, itemsToget, ScrapeURLConfiguration...)
 		}(i)
 	}
 
-	err := w.readinessCheck(scraperWorkerCount)
+	err := w.readinessCheck()
 	if err != nil {
 		log.Print("Readiness check failed")
 		return nil, err
 	}
 
 	go func() {
-		err = w.livenessCheck(scraperWorkerCount)
+		err = w.livenessCheck()
 	}()
 	if err != nil {
 		log.Print("Liveness check failed")
 		return nil, err
 	}
 	w.wg.Wait()
-
+	log.Printf("Finished crawling %v", url)
 	return []string{}, nil
 }
 
-func (w *WebCrawler) runWebScraper(scraperNumber int, maxDepth int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
-	wgg := new(sync.WaitGroup)
+func (w *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
+	wg := new(sync.WaitGroup)
 	webscraper := &webscraper.WebScraper{
-		Host:          w.name,
+		RootURL:       w.rootURL,
 		ScraperNumber: scraperNumber,
 		Stop:          w.stop,
-		Wg:            *wgg,
+		WaitGroup:     *wg,
 	}
 
-	w.mutex.Lock()
+	w.mapLock.Lock()
 	w.webScrapers[scraperNumber] = webscraper
-	w.mutex.Unlock()
-
-	maxVisitedUrls := 10
-	delay := 2
+	w.mapLock.Unlock()
 	for {
 		select {
 		case url := <-w.urlsToCrawl:
 			// Options: Ability to delay the execution of scraper
-			if numGoRoutine := runtime.NumGoroutine(); numGoRoutine > 30 {
-				continue
+			if numGoRoutine := runtime.NumGoroutine(); numGoRoutine > w.options.MaxGoRoutines {
+				log.Print("too many go routines")
+				return webscraper, nil
 			}
-			if delay != 0 {
-				time.Sleep(time.Second * time.Duration(delay))
+			if w.options.CrawlDelay != 0 {
+				time.Sleep(time.Second * time.Duration(w.options.CrawlDelay))
 			}
 			// Options: Ability to cap the number of urls scraped
-			if maxVisitedUrls != 0 && maxVisitedUrls < w.visitedUrlsCounter {
+			if w.options.MaxVisitedUrls <= w.metrics.urlsVisited {
 				log.Print("Max urls hit... exiting")
-				webscraper.Wg.Wait()
 				return webscraper, nil
 			}
 			// TODO: If scraper is timing out, stop that scraper object from scraping. Use stopWebCrawler() to stop specific instances of webcrawler
-			webscraper.Wg.Add(1)
+			webscraper.WaitGroup.Add(1)
 			go func() {
-				defer webscraper.Wg.Done()
-				scrapedUrls, _ := webscraper.Scrape(url, itemsToget, ScrapeConfiguration...)
-				w.processScrapedUrls(scrapedUrls)
-				w.urlsFoundCounter += len(scrapedUrls)
-				w.visitedUrlsCounter++
-				log.Printf("Go routine:%v | Crawling link: %v | Counter Link: %v | Url Found : %v", scraperNumber, url, w.visitedUrlsCounter, w.urlsFoundCounter)
+				defer webscraper.WaitGroup.Done()
+				scrapeResponse, _ := webscraper.Scrape(url, itemsToget, ScrapeURLConfiguration...)
+				w.incrementMetrics(&Metrics{urlsFound: len(scrapeResponse.ExtractedURLs), urlsVisited: 1, itemsFound: len(scrapeResponse.ExtractedItem)})
+				log.Printf("Go routine:%v | Crawling link: %v | Current depth: %v | Counter Link: %v | Url Found : %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, w.metrics.urlsVisited, w.metrics.urlsFound, w.metrics.itemsFound)
+				if len(scrapeResponse.ExtractedURLs) != 0 {
+					if scrapeResponse.ExtractedURLs[0].CurrentDepth <= w.options.MaxDepth {
+						w.processScrapedUrls(scrapeResponse.ExtractedURLs)
+					}
+				}
+				w.pendingUrlsToCrawlCount <- -1
 			}()
 		case <-webscraper.Stop:
-			webscraper.Wg.Wait()
+			webscraper.WaitGroup.Wait()
 			return webscraper, nil
 		}
 	}
 }
 
-func (w *WebCrawler) processScrapedUrls(scrapedUrls []string) {
+func (w *WebCrawler) incrementMetrics(metrics *Metrics) *Metrics {
+	w.metricsLock.Lock()
+	if metrics.urlsFound != 0 {
+		w.metrics.urlsFound += metrics.urlsFound
+	}
+
+	if metrics.urlsVisited != 0 {
+		w.metrics.urlsVisited += metrics.urlsVisited
+	}
+	if metrics.itemsFound != 0 {
+		w.metrics.itemsFound += metrics.itemsFound
+	}
+	w.metricsLock.Unlock()
+	return metrics
+}
+
+func (w *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 	for _, url := range scrapedUrls {
 		w.pendingUrlsToCrawl <- url
 		w.pendingUrlsToCrawlCount <- 1
@@ -162,9 +188,13 @@ func (w *WebCrawler) processCrawledLinks() {
 	for {
 		select {
 		case url := <-w.pendingUrlsToCrawl:
-			_, visited := w.visited[url]
+			if url == nil {
+				log.Print("Channel is closed, closing processCrawledLinks goroutine")
+				return
+			}
+			_, visited := w.visited[url.CurrentURL]
 			if !visited {
-				w.visited[url] = struct{}{}
+				w.visited[url.CurrentURL] = struct{}{}
 				w.urlsToCrawl <- url
 			}
 		}
@@ -177,7 +207,8 @@ func (w *WebCrawler) monitorCrawling() {
 	for count := range w.pendingUrlsToCrawlCount {
 		c += count
 		if c == 0 {
-			w.stopAllWebCrawlers()
+			log.Print("Closing channels")
+			w.stopAllWebScrapers()
 			close(w.urlsToCrawl)
 			close(w.pendingUrlsToCrawl)
 			close(w.pendingUrlsToCrawlCount)
@@ -185,53 +216,96 @@ func (w *WebCrawler) monitorCrawling() {
 	}
 }
 
-func (w *WebCrawler) stopWebCrawler(scraperNumbers []int) {
+func (w *WebCrawler) shutDownWebScraper(scraper *webscraper.WebScraper) {
+	w.wg.Add(1)
+	defer w.wg.Done()
+	scraper.Stop <- struct{}{}
+}
+
+func (w *WebCrawler) stopWebScraper(scraperNumbers []int) {
 	for _, scraperNumber := range scraperNumbers {
 		if scraper, scraperExist := w.webScrapers[scraperNumber]; scraperExist {
-			w.wg.Add(1)
-			go func(scraper webscraper.WebScraper) {
-				defer w.wg.Done()
-				scraper.Stop <- struct{}{}
-			}(*scraper)
+			go w.shutDownWebScraper(scraper)
 		}
 	}
 	w.wg.Wait()
 }
 
-func (w *WebCrawler) stopAllWebCrawlers() {
+func (w *WebCrawler) stopAllWebScrapers() {
 	for _, scraper := range w.webScrapers {
-		w.wg.Add(1)
-		go func(scraper webscraper.WebScraper) {
-			defer w.wg.Done()
-			scraper.Stop <- struct{}{}
-		}(*scraper)
+		go w.shutDownWebScraper(scraper)
 	}
 	w.wg.Wait()
 }
 
 // readinessCheck ensures that the specified number of webscraper workers have start up correctly which indicates that the crawler has started up correctly and are ready to scrape.
-func (w *WebCrawler) readinessCheck(scraperWorkerCount int) error {
-	time.Sleep(time.Second * 20)
-	if len(w.webScrapers) != scraperWorkerCount {
-		log.Printf("Failed health check, number of web scrapers: %v is below threshold: %v", len(w.webScrapers), scraperWorkerCount)
+func (w *WebCrawler) readinessCheck() error {
+	time.Sleep(time.Second * 10)
+	if len(w.webScrapers) != w.options.WebScraperWorkerCount {
+		log.Printf("Failed health check, number of web scrapers: %v is below threshold: %v", len(w.webScrapers), w.options.WebScraperWorkerCount)
 		return errorHealthCheck
 	}
 	return nil
 }
 
-func (w *WebCrawler) livenessCheck(threshold int) error {
-	threshold *= 2
+func (w *WebCrawler) livenessCheck() error {
+	var checkCounter bool = true
 	for {
 		time.Sleep(time.Second * 10)
 		numGoRoutine := runtime.NumGoroutine()
-		if numGoRoutine < threshold {
-			log.Printf("Failed health check, number of go routines: %v is below threshold: %v", numGoRoutine, threshold)
+		if numGoRoutine < w.options.WebScraperWorkerCount*2 {
+			log.Printf("Failed liveness check, number of go routines: %v is below threshold: %v", numGoRoutine, w.options.WebScraperWorkerCount*2)
 			return errorLivenessCheck
+		}
+		if checkCounter {
+			go func() {
+				checkCounter = false
+				pastCounter := w.metrics.urlsVisited
+				time.Sleep(time.Second * 60)
+				presentCounter := w.metrics.urlsVisited
+				if pastCounter == presentCounter {
+					log.Fatalf("Failed liveness check, url has not been crawled during 30 second interval")
+				}
+				log.Print("Check counter passed")
+				checkCounter = true
+			}()
 		}
 		var stats runtime.MemStats
 		runtime.ReadMemStats(&stats)
 		fmt.Printf("HeapAlloc=%02fMB; Sys=%02fMB\n", float64(stats.HeapAlloc)/1024.0/1024.0, float64(stats.Sys)/1024.0/1024.0)
 	}
+}
+
+func (w *WebCrawler) initRobotsTxtRestrictions(url string) error {
+	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		url = strings.Replace(url, strings.SplitAfterN(url, "/", 4)[3], "robots.txt", 1)
+	} else {
+		url = strings.Replace(url, strings.SplitAfterN(url, "/", 2)[1], "robots.txt", 1)
+	}
+	resp := webscraper.ConnectToWebsite(url)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	robotTxtRules := strings.Split(string(body), "\n")
+	addRule := false
+	for _, rules := range robotTxtRules {
+		if strings.Contains(rules, "User-agent: *") {
+			addRule = true
+			log.Print("add rule is true")
+			continue
+		} else if strings.Contains(rules, "User-agent: ") && addRule {
+			log.Print("breaking")
+			break
+		}
+		if addRule {
+			if strings.Contains(rules, "Disallow: ") {
+				w.options.BlacklistedURLPaths[strings.Split(rules, " ")[1]] = struct{}{}
+			}
+		}
+	}
+	return nil
 }
 
 /*

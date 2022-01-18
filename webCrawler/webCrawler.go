@@ -73,10 +73,10 @@ func (w *WebCrawler) init() {
 func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
 	w.rootURL = url
 	w.initRobotsTxtRestrictions(url)
-	return []string{}, nil
 	go func() {
 		w.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: w.options.MaxDepth}})
 	}()
+
 	if w.options.MaxDepth < 0 {
 		return nil, errorMaxDepthBelowZero
 	}
@@ -114,10 +114,11 @@ func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfigu
 func (w *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
 	wg := new(sync.WaitGroup)
 	webscraper := &webscraper.WebScraper{
-		RootURL:       w.rootURL,
-		ScraperNumber: scraperNumber,
-		Stop:          w.stop,
-		WaitGroup:     *wg,
+		RootURL:             w.rootURL,
+		ScraperNumber:       scraperNumber,
+		Stop:                w.stop,
+		WaitGroup:           *wg,
+		BlackListedURLPaths: w.options.BlacklistedURLPaths,
 	}
 
 	w.mapLock.Lock()
@@ -191,6 +192,9 @@ func (w *WebCrawler) processCrawledLinks() {
 			if url == nil {
 				log.Print("Channel is closed, closing processCrawledLinks goroutine")
 				return
+			}
+			if url.CurrentURL == "" {
+				continue
 			}
 			_, visited := w.visited[url.CurrentURL]
 			if !visited {
@@ -293,15 +297,13 @@ func (w *WebCrawler) initRobotsTxtRestrictions(url string) error {
 	for _, rules := range robotTxtRules {
 		if strings.Contains(rules, "User-agent: *") {
 			addRule = true
-			log.Print("add rule is true")
 			continue
 		} else if strings.Contains(rules, "User-agent: ") && addRule {
-			log.Print("breaking")
 			break
 		}
 		if addRule {
 			if strings.Contains(rules, "Disallow: ") {
-				w.options.BlacklistedURLPaths[strings.Split(rules, " ")[1]] = struct{}{}
+				w.options.BlacklistedURLPaths[strings.ReplaceAll(strings.Split(rules, " ")[1], "*", "")] = struct{}{}
 			}
 		}
 	}

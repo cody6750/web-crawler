@@ -13,6 +13,8 @@ func IsEmpty(i interface{}) bool {
 		return len(o) == 0
 	case map[string]ExtractFromHTMLConfiguration:
 		return len(o) == 0
+	case map[string]struct{}:
+		return len(o) == 0
 	default:
 		return false
 	}

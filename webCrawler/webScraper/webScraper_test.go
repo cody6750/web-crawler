@@ -419,3 +419,46 @@ func Test_isDuplicateURL(t *testing.T) {
 		})
 	}
 }
+
+func TestWebScraper_checkBlackListedURLPaths(t *testing.T) {
+	type args struct {
+		url string
+	}
+	tests := []struct {
+		name string
+		w    *WebScraper
+		args args
+		want bool
+	}{
+		{
+			name: "blacklisted",
+			w: &WebScraper{
+				BlackListedURLPaths: map[string]struct{}{
+					"/gp/cart": {},
+				},
+			},
+			args: args{
+				url: "https://www.amazon.com/gp/cart/view.html?ref_=nav_cart",
+			},
+			want: true,
+		}, {
+			name: "Not blacklistd",
+			w: &WebScraper{
+				BlackListedURLPaths: map[string]struct{}{
+					"/gp/cart": {},
+				},
+			},
+			args: args{
+				url: "https://www.amazon.com/gp/view.html?ref_=nav_cart",
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.w.isBlackListedURLPath(tt.args.url); got != tt.want {
+				t.Errorf("WebScraper.checkBlackListedURLPaths() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

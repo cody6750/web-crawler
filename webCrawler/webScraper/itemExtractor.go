@@ -81,11 +81,11 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 			tagStack.pop()
 		case tokenType == html.ErrorToken:
 			tagStack.pop()
-			//item.printJSON()
+			// item.printJSON()
 			return item, nil
 		}
 	}
-	// /item.printJSON()
+	// item.printJSON()
 	return item, nil
 }
 

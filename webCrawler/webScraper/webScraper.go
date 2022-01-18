@@ -2,6 +2,7 @@ package webcrawler
 
 import (
 	"errors"
+	"strings"
 	"sync"
 
 	"golang.org/x/net/html"
@@ -24,11 +25,12 @@ type ScrapeResposne struct {
 
 //WebScraper ...
 type WebScraper struct {
-	RootURL       string
-	ScraperNumber int
-	Queue         chan []string
-	Stop          chan struct{}
-	WaitGroup     sync.WaitGroup
+	BlackListedURLPaths map[string]struct{}
+	RootURL             string
+	ScraperNumber       int
+	// Queue         chan []string
+	Stop      chan struct{}
+	WaitGroup sync.WaitGroup
 }
 
 //ScrapeURLConfiguration ...
@@ -57,7 +59,7 @@ func New() *WebScraper {
 }
 
 //Scrape ..
-func (w WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfiguration, scrapeURLConfiguration ...ScrapeURLConfiguration) (*ScrapeResposne, error) {
+func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfiguration, scrapeURLConfiguration ...ScrapeURLConfiguration) (*ScrapeResposne, error) {
 	var (
 		extractedURL       string
 		extractedURLObject *URL
@@ -105,16 +107,21 @@ func (w WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfigu
 					continue
 				}
 			}
-			if extractedURL != "" {
-				extractedURLObject = &URL{CurrentURL: extractedURL, ParentURL: url.CurrentURL, RootURL: w.RootURL, CurrentDepth: url.CurrentDepth + 1, MaxDepth: url.MaxDepth}
-				ExtractedURLs = append(ExtractedURLs, extractedURLObject)
+			if extractedURL != "" && !IsEmpty(w.BlackListedURLPaths) {
+				isBlackListedURLPath := w.isBlackListedURLPath(extractedURL)
+				if !isBlackListedURLPath {
+					extractedURLObject = &URL{CurrentURL: extractedURL, ParentURL: url.CurrentURL, RootURL: w.RootURL, CurrentDepth: url.CurrentDepth + 1, MaxDepth: url.MaxDepth}
+					ExtractedURLs = append(ExtractedURLs, extractedURLObject)
+				}
 			}
+
 			if !IsEmpty(scrapeItemConfiguration) {
 				extractedItem, err := ExtractItemWithScrapItemConfiguration(t, z, itemTagsToCheck, scrapeItemConfiguration)
 				if err != nil {
 					continue
 				}
 				extractedItem.URL = extractedURLObject
+				extractedItem.printJSON()
 				ExtractedItems = append(ExtractedItems, &extractedItem)
 			}
 
@@ -155,4 +162,25 @@ func generateURLTagsToCheckMap(urlTagsToCheck map[string]bool, scrapeURLConfigur
 		}
 	}
 	return urlTagsToCheck, nil
+}
+
+func (w *WebScraper) isBlackListedURLPath(url string) bool {
+	var urlToCheck string
+	urlPath := "/" + strings.SplitN(url, "/", 4)[3]
+	splitURLPath := strings.Split(urlPath, "/")
+	for _, splitURL := range splitURLPath {
+		urlToCheck += splitURL
+		if urlToCheck == "" {
+			urlToCheck += "/"
+			continue
+		}
+		if _, exist := w.BlackListedURLPaths[urlToCheck]; exist {
+			return true
+		}
+		urlToCheck += "/"
+		if _, exist := w.BlackListedURLPaths[urlToCheck]; exist {
+			return true
+		}
+	}
+	return false
 }

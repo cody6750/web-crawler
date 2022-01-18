@@ -53,7 +53,6 @@ func New() *WebCrawler {
 //NewWithOptions ...
 func NewWithOptions(options *options.Options) *WebCrawler {
 	crawler := &WebCrawler{}
-	crawler.init()
 	crawler.options = options
 	return crawler
 }
@@ -71,6 +70,8 @@ func (w *WebCrawler) init() {
 
 //Crawl ...
 func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
+	w.init()
+
 	w.rootURL = url
 	w.initRobotsTxtRestrictions(url)
 	go func() {

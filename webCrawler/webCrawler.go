@@ -29,8 +29,7 @@ type Metrics struct {
 
 //WebCrawler ...
 type WebCrawler struct {
-	rootURL string
-	// TODO: Turn this into []webscraper.URL
+	rootURL                 string
 	pendingUrlsToCrawlCount chan int
 	pendingUrlsToCrawl      chan *webscraper.URL
 	urlsToCrawl             chan *webscraper.URL
@@ -58,7 +57,7 @@ func NewWithOptions(options *options.Options) *WebCrawler {
 }
 
 //Init ...
-func (w *WebCrawler) init() {
+func (w *WebCrawler) init(rootURL string) error {
 	w.pendingUrlsToCrawlCount = make(chan int)
 	w.pendingUrlsToCrawl = make(chan *webscraper.URL)
 	w.urlsToCrawl = make(chan *webscraper.URL)
@@ -66,21 +65,29 @@ func (w *WebCrawler) init() {
 	w.visited = make(map[string]struct{})
 	w.webScrapers = make(map[int]*webscraper.WebScraper)
 	w.wg = *new(sync.WaitGroup)
+	w.rootURL = rootURL
+
+	err := w.initRobotsTxtRestrictions(rootURL)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 //Crawl ...
 func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
-	w.init()
-
-	w.rootURL = url
-	w.initRobotsTxtRestrictions(url)
-	go func() {
-		w.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: w.options.MaxDepth}})
-	}()
-
+	err := w.init(url)
+	if err != nil {
+		return nil, err
+	}
 	if w.options.MaxDepth < 0 {
 		return nil, errorMaxDepthBelowZero
 	}
+
+	go func() {
+		w.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: w.options.MaxDepth}})
+	}()
 
 	go w.processCrawledLinks()
 
@@ -94,19 +101,14 @@ func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfigu
 		}(i)
 	}
 
-	err := w.readinessCheck()
+	err = w.readinessCheck()
 	if err != nil {
 		log.Print("Readiness check failed")
 		return nil, err
 	}
 
-	go func() {
-		err = w.livenessCheck()
-	}()
-	if err != nil {
-		log.Print("Liveness check failed")
-		return nil, err
-	}
+	go w.livenessCheck()
+
 	w.wg.Wait()
 	log.Printf("Finished crawling %v", url)
 	return []string{}, nil
@@ -120,6 +122,8 @@ func (w *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.Sc
 		Stop:                w.stop,
 		WaitGroup:           *wg,
 		BlackListedURLPaths: w.options.BlacklistedURLPaths,
+		HeaderKey:           w.options.HeaderKey,
+		HeaderValue:         w.options.HeaderValue,
 	}
 
 	w.mapLock.Lock()
@@ -128,31 +132,25 @@ func (w *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.Sc
 	for {
 		select {
 		case url := <-w.urlsToCrawl:
-			// Options: Ability to delay the execution of scraper
-			if numGoRoutine := runtime.NumGoroutine(); numGoRoutine > w.options.MaxGoRoutines {
-				log.Print("too many go routines")
-				return webscraper, nil
-			}
+			// Options: Set delay
 			if w.options.CrawlDelay != 0 {
 				time.Sleep(time.Second * time.Duration(w.options.CrawlDelay))
 			}
+			// Options: Ability to delay the execution of scraper
+			if numGoRoutine := runtime.NumGoroutine(); numGoRoutine > w.options.MaxGoRoutines {
+				return webscraper, fmt.Errorf("webscraper gorutines has supressed the max go routines. Current: %v Max: %v", numGoRoutine, w.options.MaxGoRoutines)
+			}
 			// Options: Ability to cap the number of urls scraped
 			if w.options.MaxVisitedUrls <= w.metrics.urlsVisited {
-				log.Print("Max urls hit... exiting")
-				return webscraper, nil
+				return webscraper, fmt.Errorf("url visited has supressed the max url visited. Current: %v Max: %v", w.metrics.urlsVisited, w.options.MaxVisitedUrls)
 			}
-			// TODO: If scraper is timing out, stop that scraper object from scraping. Use stopWebCrawler() to stop specific instances of webcrawler
 			webscraper.WaitGroup.Add(1)
 			go func() {
 				defer webscraper.WaitGroup.Done()
 				scrapeResponse, _ := webscraper.Scrape(url, itemsToget, ScrapeURLConfiguration...)
 				w.incrementMetrics(&Metrics{urlsFound: len(scrapeResponse.ExtractedURLs), urlsVisited: 1, itemsFound: len(scrapeResponse.ExtractedItem)})
 				log.Printf("Go routine:%v | Crawling link: %v | Current depth: %v | Counter Link: %v | Url Found : %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, w.metrics.urlsVisited, w.metrics.urlsFound, w.metrics.itemsFound)
-				if len(scrapeResponse.ExtractedURLs) != 0 {
-					if scrapeResponse.ExtractedURLs[0].CurrentDepth <= w.options.MaxDepth {
-						w.processScrapedUrls(scrapeResponse.ExtractedURLs)
-					}
-				}
+				w.processScrapedUrls(scrapeResponse.ExtractedURLs)
 				w.pendingUrlsToCrawlCount <- -1
 			}()
 		case <-webscraper.Stop:
@@ -179,6 +177,12 @@ func (w *WebCrawler) incrementMetrics(metrics *Metrics) *Metrics {
 }
 
 func (w *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
+	if len(scrapedUrls) == 0 {
+		return
+	}
+	if scrapedUrls[0].CurrentDepth > w.options.MaxDepth {
+		return
+	}
 	for _, url := range scrapedUrls {
 		w.pendingUrlsToCrawl <- url
 		w.pendingUrlsToCrawlCount <- 1
@@ -259,8 +263,8 @@ func (w *WebCrawler) livenessCheck() error {
 		time.Sleep(time.Second * 10)
 		numGoRoutine := runtime.NumGoroutine()
 		if numGoRoutine < w.options.WebScraperWorkerCount*2 {
-			log.Printf("Failed liveness check, number of go routines: %v is below threshold: %v", numGoRoutine, w.options.WebScraperWorkerCount*2)
-			return errorLivenessCheck
+			w.stopAllWebScrapers()
+			return fmt.Errorf("Failed liveness check, number of go routines: %v is below threshold: %v", numGoRoutine, w.options.WebScraperWorkerCount*2)
 		}
 		if checkCounter {
 			go func() {
@@ -269,7 +273,8 @@ func (w *WebCrawler) livenessCheck() error {
 				time.Sleep(time.Second * 60)
 				presentCounter := w.metrics.urlsVisited
 				if pastCounter == presentCounter {
-					log.Fatalf("Failed liveness check, url has not been crawled during 30 second interval")
+					log.Printf("Failed liveness check, url has not been crawled during 30 second interval")
+					w.stopAllWebScrapers()
 				}
 				log.Print("Check counter passed")
 				checkCounter = true
@@ -287,7 +292,7 @@ func (w *WebCrawler) initRobotsTxtRestrictions(url string) error {
 	} else {
 		url = strings.Replace(url, strings.SplitAfterN(url, "/", 2)[1], "robots.txt", 1)
 	}
-	resp := webscraper.ConnectToWebsite(url)
+	resp := webscraper.ConnectToWebsite(url, w.options.HeaderKey, w.options.HeaderValue)
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -310,12 +315,3 @@ func (w *WebCrawler) initRobotsTxtRestrictions(url string) error {
 	}
 	return nil
 }
-
-/*
-Unbuffered Channel:
-In an unbuffered channel, the send and recieve must be ready at the same time or the channel is blocked. The select statement can only execute each case statement once thus the send is never able to recieve.
-
-Bufferd Channel:
-In an buffered channel, the send and recieve are able to still send without the other operation being ready due to the buffer/capacity of the channel. It is able to hold that operation until it is called. Thus The select statement can execute.
-https://stackoverflow.com/questions/47525250/in-the-go-select-construct-can-i-have-send-and-receive-to-unbuffered-channel-in
-*/

@@ -7,23 +7,18 @@ import (
 )
 
 //ConnectToWebsite ...
-func ConnectToWebsite(WebPageURL string) *http.Response {
+func ConnectToWebsite(webPageURL, headerKey, headerValue string) *http.Response {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	//GET request to domain for HTML response
-	request, err := http.NewRequest("GET", WebPageURL, nil)
+	request, err := http.NewRequest("GET", webPageURL, nil)
 	if err != nil {
-		log.Print("Fatal connecting")
 		log.Fatal(err)
 	}
-	// Set header as User-Agent so the server admins don't block our IP address from HTTP requests
-	request.Header.Set("User-Agent", "This bot just searches amazon for a product")
+	request.Header.Set(headerKey, headerValue)
 
-	// Make HTTP request
 	response, err := client.Do(request)
 	if err != nil {
-		log.Print("Fatal connecting")
 		log.Fatal(err)
 	}
 	return response

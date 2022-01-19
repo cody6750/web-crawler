@@ -29,8 +29,10 @@ type WebScraper struct {
 	RootURL             string
 	ScraperNumber       int
 	// Queue         chan []string
-	Stop      chan struct{}
-	WaitGroup sync.WaitGroup
+	Stop        chan struct{}
+	WaitGroup   sync.WaitGroup
+	HeaderKey   string
+	HeaderValue string
 }
 
 //ScrapeURLConfiguration ...
@@ -71,7 +73,7 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 	)
 	//log.Printf("Scraping link: %v", url)
 	URLsToCheck = make(map[string]bool)
-	response := ConnectToWebsite(url.CurrentURL).Body
+	response := ConnectToWebsite(url.CurrentURL, w.HeaderKey, w.HeaderValue).Body
 	if !IsEmpty(scrapeURLConfiguration) {
 		urlTagsToCheck, err = generateURLTagsToCheckMap(urlTagsToCheck, scrapeURLConfiguration)
 		if err != nil {
@@ -121,7 +123,7 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 					continue
 				}
 				extractedItem.URL = extractedURLObject
-				extractedItem.printJSON()
+				// extractedItem.printJSON()
 				ExtractedItems = append(ExtractedItems, &extractedItem)
 			}
 

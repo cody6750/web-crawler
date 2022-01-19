@@ -9,7 +9,9 @@ import (
 
 func TestConnectToWebsite(t *testing.T) {
 	type args struct {
-		WebPageURL string
+		WebPageURL  string
+		headerKey   string
+		headerValue string
 	}
 	tests := []struct {
 		name string
@@ -18,15 +20,17 @@ func TestConnectToWebsite(t *testing.T) {
 	}{
 		{
 			args: args{
-				WebPageURL: "https://www.newegg.com/p/pl?d=rtx+3080&LeftPriceRange=1000+",
+				headerKey:   "User Agent",
+				headerValue: "Harmless test",
+				WebPageURL:  "https://www.newegg.com/p/pl?d=rtx+3080&LeftPriceRange=1000+",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ConnectToWebsite(tt.args.WebPageURL)
+			response := ConnectToWebsite(tt.args.WebPageURL, tt.args.headerKey, tt.args.headerValue)
 			//We Read the response body on the line below.
-			body, err := ioutil.ReadAll(ConnectToWebsite(tt.args.WebPageURL).Body)
+			body, err := ioutil.ReadAll(response.Body)
 			if err != nil {
 				log.Fatalln(err)
 			}

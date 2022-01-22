@@ -14,7 +14,7 @@ type ExtractFromHTMLConfiguration struct {
 
 func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {
 	if attributeToGet == "" {
-		return "empty string", errEmptyParameter
+		return attributeValue, errEmptyParameter
 	}
 	for _, a := range token.Attr {
 		if a.Key == attributeToGet {
@@ -23,7 +23,7 @@ func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (at
 		}
 	}
 	if attributeValue == "" {
-		return "empty string", errEmptyParameter
+		return attributeValue, errEmptyParameter
 	}
-	return "does not exist", nil
+	return attributeValue, nil
 }

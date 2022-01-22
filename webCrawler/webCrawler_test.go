@@ -25,11 +25,11 @@ func TestWebCrawler_Crawl(t *testing.T) {
 				url: "https://www.bestbuy.com/site/searchpage.jsp?id=pcat17071&qp=gpusv_facet%3DGraphics%20Processing%20Unit%20(GPU)~NVIDIA%20GeForce%20RTX%203080&st=rtx+3080",
 				ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
 					{
-						ExtractFromHTMLConfiguration: webscraper.ExtractFromHTMLConfiguration{
-							Attribute:      "class",
-							AttributeValue: "bottom-left-links",
-							Tag:            "a",
-						},
+						// ExtractFromHTMLConfiguration: webscraper.ExtractFromHTMLConfiguration{
+						// 	Attribute:      "class",
+						// 	AttributeValue: "bottom-left-links",
+						// 	Tag:            "a",
+						// },
 						FormatURLConfiguration: webscraper.FormatURLConfiguration{
 							PrefixExist: "/",
 							PrefixToAdd: "http://bestbuy.com",

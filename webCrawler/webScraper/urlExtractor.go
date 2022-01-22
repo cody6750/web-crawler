@@ -43,7 +43,6 @@ func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bo
 			}
 
 			if !isDuplicateURL(formatedURL, URLsToCheck) && ExtractedURL != "" {
-				//log.Default().Printf("Formated url: %v", formatedURL)
 				return formatedURL, nil
 
 			}
@@ -61,7 +60,6 @@ func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFro
 	}
 	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, urlConfig.Attribute)
 	if strings.Contains(HTTPAttributeValueFromToken, urlConfig.AttributeValue) {
-		//log.Printf("Got attribute %v, Value %v", urlConfig.AttributeToCheck, HTTPAttributeValueFromToken)
 		hrefValue, _ := getHTTPAttributeValueFromToken(token, hrefAttribute)
 		return hrefValue, nil
 	}

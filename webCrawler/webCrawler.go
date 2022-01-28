@@ -114,6 +114,14 @@ func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfigu
 	go w.livenessCheck()
 
 	w.wg.Wait()
+	select {
+	case <-wgDone:
+		// carry on
+		break
+	case err := <-errs:
+		close(errs)
+		return err
+	}
 	log.Printf("Finished crawling %v", url)
 	return []string{}, nil
 }

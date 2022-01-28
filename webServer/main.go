@@ -14,11 +14,9 @@ import (
 func main() {
 	// Given a request on the http server, based on the path, a specific function is ran. Example  curl -v localhost:9090/goodbye will run the function parameter
 	l := log.New(os.Stdout, "product-api", log.LstdFlags)
-	Hello := handler.NewHello(l)
-	GoodBye := handler.NewGoodBye(l)
+	Crawler := handler.NewCrawler(l)
 	sm := http.NewServeMux()
-	sm.Handle("/", Hello)
-	sm.Handle("/goodbye", GoodBye)
+	sm.Handle("/", Crawler)
 
 	//Function for creating a web service on port :9090. Called by curl -v localhost:9090
 	server := http.Server{
@@ -44,8 +42,4 @@ func main() {
 	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	server.Shutdown(tc)
 
-}
-
-func tesT() {
-	log.Print("hello world")
 }

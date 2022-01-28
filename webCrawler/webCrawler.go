@@ -45,7 +45,7 @@ type WebCrawler struct {
 }
 
 //New ...
-func New() *WebCrawler {
+func NewCrawler() *WebCrawler {
 	return NewWithOptions(options.New())
 }
 
@@ -273,8 +273,8 @@ func (w *WebCrawler) livenessCheck() error {
 				time.Sleep(time.Second * 60)
 				presentCounter := w.metrics.urlsVisited
 				if pastCounter == presentCounter {
-					log.Printf("Failed liveness check, url has not been crawled during 30 second interval")
 					w.stopAllWebScrapers()
+					//return fmt.Errorf("Failed liveness check, url has not been crawled during 30 second interval")
 				}
 				log.Print("Check counter passed")
 				checkCounter = true

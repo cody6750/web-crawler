@@ -21,15 +21,11 @@ func (h *Hello) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	//http.ResponseWriter : Object that writes to the HTTP response to the user.
 	//*http.Request : Object containing http request information
 	h.log.Print("Hello")
-	http.HandleFunc("/", func(h http.ResponseWriter, r *http.Request) {
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			//Allows you to return specific error codes
-			// h.WriteHeader(400)
-			// h.Write([]byte("bad request"))
-			http.Error(h, "bad request", 400)
-			return
-		}
-		fmt.Fprintf(h, "%s\n", b)
-	})
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		//Allows you to return specific error codes
+		http.Error(rw, "bad request", 400)
+		return
+	}
+	fmt.Fprintf(rw, "%s\n", b)
 }

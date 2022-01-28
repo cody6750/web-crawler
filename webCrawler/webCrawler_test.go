@@ -7,7 +7,7 @@ import (
 )
 
 func TestWebCrawler_Crawl(t *testing.T) {
-	crawl := New()
+	crawl := NewCrawler()
 	type args struct {
 		url                     string
 		ScrapeURLConfiguration  []webscraper.ScrapeURLConfiguration

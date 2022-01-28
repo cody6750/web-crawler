@@ -1,12 +1,14 @@
 package webcrawler
 
+import "reflect"
+
 //IsEmpty ...
 func IsEmpty(i interface{}) bool {
 	switch o := i.(type) {
 	case ExtractFromHTMLConfiguration:
-		return o == (ExtractFromHTMLConfiguration{})
+		return reflect.DeepEqual(o, ExtractFromHTMLConfiguration{})
 	case FormatURLConfiguration:
-		return o == (FormatURLConfiguration{})
+		return reflect.DeepEqual(o, FormatURLConfiguration{})
 	case []ScrapeItemConfiguration:
 		return len(o) == 0
 	case []ScrapeURLConfiguration:

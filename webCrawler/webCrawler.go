@@ -29,19 +29,20 @@ type Metrics struct {
 
 //WebCrawler ...
 type WebCrawler struct {
-	rootURL                 string
-	pendingUrlsToCrawlCount chan int
-	pendingUrlsToCrawl      chan *webscraper.URL
-	urlsToCrawl             chan *webscraper.URL
-	stop                    chan struct{}
-	metrics                 Metrics
-	visited                 map[string]struct{}
-	webScrapers             map[int]*webscraper.WebScraper
-	wg                      sync.WaitGroup
-	mapLock                 sync.Mutex
-	metricsLock             sync.Mutex
-	test                    map[string]interface{}
-	options                 *options.Options
+	rootURL                   string
+	pendingUrlsToCrawlCount   chan int
+	pendingUrlsToCrawl        chan *webscraper.URL
+	urlsToCrawl               chan *webscraper.URL
+	collectWebScraperResponse chan *webscraper.ScrapeResposne
+	webScraperResponses       []*webscraper.ScrapeResposne
+	stop                      chan struct{}
+	metrics                   Metrics
+	visited                   map[string]struct{}
+	webScrapers               map[int]*webscraper.WebScraper
+	wg                        sync.WaitGroup
+	mapLock                   sync.Mutex
+	metricsLock               sync.Mutex
+	options                   *options.Options
 }
 
 //New ...
@@ -60,6 +61,7 @@ func NewWithOptions(options *options.Options) *WebCrawler {
 func (w *WebCrawler) init(rootURL string) error {
 	w.pendingUrlsToCrawlCount = make(chan int)
 	w.pendingUrlsToCrawl = make(chan *webscraper.URL)
+	w.collectWebScraperResponse = make(chan *webscraper.ScrapeResposne)
 	w.urlsToCrawl = make(chan *webscraper.URL)
 	w.stop = make(chan struct{}, 30)
 	w.visited = make(map[string]struct{})
@@ -92,6 +94,8 @@ func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfigu
 	go w.processCrawledLinks()
 
 	go w.monitorCrawling()
+
+	go w.processSrapedResponse()
 
 	for i := 0; i < w.options.WebScraperWorkerCount; i++ {
 		w.wg.Add(1)
@@ -151,6 +155,7 @@ func (w *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.Sc
 				w.incrementMetrics(&Metrics{urlsFound: len(scrapeResponse.ExtractedURLs), urlsVisited: 1, itemsFound: len(scrapeResponse.ExtractedItem)})
 				log.Printf("Go routine:%v | Crawling link: %v | Current depth: %v | Counter Link: %v | Url Found : %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, w.metrics.urlsVisited, w.metrics.urlsFound, w.metrics.itemsFound)
 				w.processScrapedUrls(scrapeResponse.ExtractedURLs)
+				w.collectWebScraperResponse <- scrapeResponse
 				w.pendingUrlsToCrawlCount <- -1
 			}()
 		case <-webscraper.Stop:
@@ -186,6 +191,12 @@ func (w *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 	for _, url := range scrapedUrls {
 		w.pendingUrlsToCrawl <- url
 		w.pendingUrlsToCrawlCount <- 1
+	}
+}
+
+func (w *WebCrawler) processSrapedResponse() {
+	for response := range w.collectWebScraperResponse {
+		w.webScraperResponses = append(w.webScraperResponses, response)
 	}
 }
 
@@ -264,7 +275,7 @@ func (w *WebCrawler) livenessCheck() error {
 		numGoRoutine := runtime.NumGoroutine()
 		if numGoRoutine < w.options.WebScraperWorkerCount*2 {
 			w.stopAllWebScrapers()
-			return fmt.Errorf("Failed liveness check, number of go routines: %v is below threshold: %v", numGoRoutine, w.options.WebScraperWorkerCount*2)
+			return fmt.Errorf("failed liveness check, number of go routines: %v is below threshold: %v", numGoRoutine, w.options.WebScraperWorkerCount*2)
 		}
 		if checkCounter {
 			go func() {

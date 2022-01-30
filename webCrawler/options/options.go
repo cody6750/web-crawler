@@ -1,14 +1,14 @@
 package options
 
 var (
-	defaultCrawlDelay            int    = 2
+	defaultCrawlDelay            int    = 5
 	defaultMaxDepth              int    = 1
 	defaultMaxGoRoutines         int    = 10000
-	defaultMaxVisitedUrls        int    = 100
+	defaultMaxVisitedUrls        int    = 10
 	defeaultMaxItemsFound        int    = 5000
 	defaultWebScraperWorkercount int    = 5
 	defaultHeaderKey             string = "User-Agent"
-	defaultHeaderValue           string = "Simple_Web_Crawler_Used_For_Product_Searches"
+	defaultHeaderValue           string = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"
 )
 
 // Options ...

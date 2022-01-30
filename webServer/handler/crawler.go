@@ -32,9 +32,15 @@ func (c *Crawler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Crawler) getProduct(rw http.ResponseWriter, r *http.Request) (string, error) {
-	products := data.GetProduct()
-	err := products.ToJSON(rw)
+	rw.Write([]byte("Getting product"))
+	products, err := data.GetProduct()
 	if err != nil {
+		return "", err
+	}
+	err = data.ToJSON(rw, products)
+	if err != nil {
+		log.Print(err)
+		log.Print("error json")
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
 	}
 	return "", nil

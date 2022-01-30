@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/json"
 	"io"
+	"log"
 
 	webcrawler "github.com/cody6750/codywebapi/webCrawler"
 	webscraper "github.com/cody6750/codywebapi/webCrawler/webScraper"
@@ -22,45 +23,27 @@ type Product struct {
 
 type Products []*Product
 
-func GetProduct() Products {
+func GetProduct() ([]*webscraper.ScrapeResposne, error) {
 	crawler := webcrawler.NewCrawler()
-	crawler.Crawl("https://www.bestbuy.com/site/searchpage.jsp?id=pcat17071&qp=gpusv_facet%3DGraphics%20Processing%20Unit%20(GPU)~NVIDIA%20GeForce%20RTX%203080&st=rtx+3080",
+	response, err := crawler.Crawl("https://www.newegg.com/p/pl?d=RTX+3080",
 		[]webscraper.ScrapeItemConfiguration{
 			{
 				ItemName: "Graphics Cards",
 				ItemToGet: webscraper.ExtractFromHTMLConfiguration{
-					Tag:            "li",
+					Tag:            "div",
 					Attribute:      "class",
-					AttributeValue: "sku-item",
+					AttributeValue: "item-container",
 				},
 				ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
 					"title": {
-						Tag:            "h4",
+						Tag:            "a",
 						Attribute:      "class",
-						AttributeValue: "sku-header",
+						AttributeValue: "item-title",
 					},
 					"price": {
-						Tag:            "span",
-						Attribute:      "aria-hidden",
-						AttributeValue: "true",
-					},
-					"link": {
-						Tag:            "a",
+						Tag:            "strong",
 						Attribute:      "",
 						AttributeValue: "",
-						AttributeToGet: "href",
-					},
-					"In stock": {
-						Tag:            "button",
-						AttributeToGet: "data-button-state",
-						AttributeValue: "button",
-						Attribute:      "disabled type",
-					},
-					"Out of stock": {
-						Tag:            "button",
-						AttributeToGet: "data-button-state",
-						AttributeValue: "button",
-						Attribute:      "type",
 					},
 				},
 			},
@@ -68,16 +51,38 @@ func GetProduct() Products {
 		[]webscraper.ScrapeURLConfiguration{
 			{
 				FormatURLConfiguration: webscraper.FormatURLConfiguration{
+					PrefixExist:    "////",
+					PrefixToRemove: "////",
+					PrefixToAdd:    "http://",
+				},
+			},
+			{
+				FormatURLConfiguration: webscraper.FormatURLConfiguration{
+					PrefixExist:    "///",
+					PrefixToRemove: "///",
+					PrefixToAdd:    "http://",
+				},
+			},
+			{
+				FormatURLConfiguration: webscraper.FormatURLConfiguration{
+					PrefixExist:    "//",
+					PrefixToRemove: "//",
+					PrefixToAdd:    "http://",
+				},
+			},
+			{
+				FormatURLConfiguration: webscraper.FormatURLConfiguration{
 					PrefixExist: "/",
-					PrefixToAdd: "http://bestbuy.com",
+					PrefixToAdd: "http://newegg.com",
 				},
 			},
 		}...,
 	)
-	var products Products
-	return products
+	return response, err
 }
 
-func (p *Products) ToJSON(w io.Writer) error {
-	return json.NewEncoder(w).Encode(p)
+func ToJSON(w io.Writer, r []*webscraper.ScrapeResposne) error {
+	bytes, _ := json.MarshalIndent(r, "", "    ")
+	log.Print(string(bytes))
+	return json.NewEncoder(w).Encode(r)
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	options "github.com/cody6750/codywebapi/webCrawler/options"
+	webcrawler "github.com/cody6750/codywebapi/webCrawler/webScraper"
 	webscraper "github.com/cody6750/codywebapi/webCrawler/webScraper"
 )
 
@@ -34,6 +35,7 @@ type WebCrawler struct {
 	pendingUrlsToCrawl        chan *webscraper.URL
 	urlsToCrawl               chan *webscraper.URL
 	collectWebScraperResponse chan *webscraper.ScrapeResposne
+	errs                      chan error
 	webScraperResponses       []*webscraper.ScrapeResposne
 	stop                      chan struct{}
 	metrics                   Metrics
@@ -62,6 +64,7 @@ func (w *WebCrawler) init(rootURL string) error {
 	w.pendingUrlsToCrawlCount = make(chan int)
 	w.pendingUrlsToCrawl = make(chan *webscraper.URL)
 	w.collectWebScraperResponse = make(chan *webscraper.ScrapeResposne)
+	w.errs = make(chan error)
 	w.urlsToCrawl = make(chan *webscraper.URL)
 	w.stop = make(chan struct{}, 30)
 	w.visited = make(map[string]struct{})
@@ -78,8 +81,9 @@ func (w *WebCrawler) init(rootURL string) error {
 }
 
 //Crawl ...
-func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) ([]string, error) {
+func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) ([]*webcrawler.ScrapeResposne, error) {
 	err := w.init(url)
+	wgDone := make(chan bool)
 	if err != nil {
 		return nil, err
 	}
@@ -113,17 +117,20 @@ func (w *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfigu
 
 	go w.livenessCheck()
 
-	w.wg.Wait()
+	go func() {
+		w.wg.Wait()
+		log.Print("Closing go routines")
+		close(wgDone)
+	}()
 	select {
 	case <-wgDone:
 		// carry on
 		break
-	case err := <-errs:
-		close(errs)
-		return err
+	case err := <-w.errs:
+		return w.webScraperResponses, err
 	}
 	log.Printf("Finished crawling %v", url)
-	return []string{}, nil
+	return w.webScraperResponses, nil
 }
 
 func (w *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
@@ -289,7 +296,7 @@ func (w *WebCrawler) livenessCheck() error {
 			go func() {
 				checkCounter = false
 				pastCounter := w.metrics.urlsVisited
-				time.Sleep(time.Second * 60)
+				time.Sleep(time.Second * 300)
 				presentCounter := w.metrics.urlsVisited
 				if pastCounter == presentCounter {
 					w.stopAllWebScrapers()

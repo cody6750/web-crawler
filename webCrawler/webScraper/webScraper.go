@@ -2,6 +2,7 @@ package webcrawler
 
 import (
 	"errors"
+	"log"
 	"strings"
 	"sync"
 
@@ -87,6 +88,8 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 		}
 	}
 	defer response.Close()
+	// strins, _ := ioutil.ReadAll(response)
+	// log.Print(string(strins))
 	// Parse HTML response by turning it into Tokens
 	z := html.NewTokenizer(response)
 	// This while loop parses through all of the tokens generated for the HTML response.
@@ -168,7 +171,11 @@ func generateURLTagsToCheckMap(urlTagsToCheck map[string]bool, scrapeURLConfigur
 
 func (w *WebScraper) isBlackListedURLPath(url string) bool {
 	var urlToCheck string
-	urlPath := "/" + strings.SplitN(url, "/", 4)[3]
+	splitURLPAth := strings.SplitN(url, "/", 4)
+	if len(splitURLPAth) < 4 {
+		return false
+	}
+	urlPath := "/" + splitURLPAth[3]
 	splitURLPath := strings.Split(urlPath, "/")
 	for _, splitURL := range splitURLPath {
 		urlToCheck += splitURL
@@ -177,10 +184,12 @@ func (w *WebScraper) isBlackListedURLPath(url string) bool {
 			continue
 		}
 		if _, exist := w.BlackListedURLPaths[urlToCheck]; exist {
+			log.Printf("URL %s is blacklisted", url)
 			return true
 		}
 		urlToCheck += "/"
 		if _, exist := w.BlackListedURLPaths[urlToCheck]; exist {
+			log.Printf("URL %s is blacklisted", url)
 			return true
 		}
 	}

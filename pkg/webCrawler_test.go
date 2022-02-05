@@ -3,7 +3,7 @@ package webcrawler
 import (
 	"testing"
 
-	webscraper "github.com/cody6750/codywebapi/webCrawler/webScraper"
+	webscraper "github.com/cody6750/web-crawler/pkg/webScraper"
 )
 
 func TestWebCrawler_Crawl(t *testing.T) {

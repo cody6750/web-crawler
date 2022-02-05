@@ -348,7 +348,7 @@ func Test_isEmptyScrapeURLConfiguration(t *testing.T) {
 			args: args{
 				s: []ScrapeURLConfiguration{
 					{
-						ConfigurationName:            "",
+						Name:                         "",
 						ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{},
 						FormatURLConfiguration:       FormatURLConfiguration{},
 					},

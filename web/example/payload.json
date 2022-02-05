@@ -1,0 +1,61 @@
+{
+    "RootURL" :"https://www.newegg.com/p/pl?d=RTX+3080&LeftPriceRange=600+1900&PageSize=96",
+    "ScrapeItemConfiguration": [ 
+        {
+            "ItemName" : "Graphics Card",
+            "ItemToGet" :  {
+                "Tag" : "div",
+                "Attribute" : "class",
+                "AttributeValue" : "item-container"
+            },
+            "ItemDetails" : {
+                "link" : {
+                    "Tag": "a",
+                    "Attribute": "class",
+                    "AttributeValue" : "item-title",
+                    "AttributeToGet" : "href"
+                },
+                "price" : {
+                    "Tag": "span",
+                    "Attribute": "class",
+                    "AttributeValue" : "price-current-label",
+                    "SkipToken" : 1
+                },                
+                "title" : {
+                    "Tag": "a",
+                    "Attribute": "class",
+                    "AttributeValue" : "item-title"
+                }
+            }
+        }
+    ],
+    "ScrapeURLConfiguration": [
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "////",
+                "PrefixToRemove": "////",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "///",
+                "PrefixToRemove": "///",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "//",
+                "PrefixToRemove": "//",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "/",
+                "PrefixToAdd":    "http://newegg.com"
+            }
+        }                        
+    ]
+}

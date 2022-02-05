@@ -1,4 +1,4 @@
-module github.com/cody6750/codywebapi
+module github.com/cody6750/web-crawler
 
 go 1.16
 

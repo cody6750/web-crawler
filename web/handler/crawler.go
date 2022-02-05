@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/cody6750/codywebapi/webServer/data"
+	"github.com/cody6750/web-crawler/web/data"
 )
 
 // Crawler ...
@@ -24,6 +24,7 @@ func NewCrawler(l *log.Logger) *Crawler {
 func (c *Crawler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == http.MethodGet:
+		log.Print("calling get product")
 		c.getProduct(rw, r)
 		return
 	default:
@@ -32,8 +33,12 @@ func (c *Crawler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Crawler) getProduct(rw http.ResponseWriter, r *http.Request) (string, error) {
-	rw.Write([]byte("Getting product"))
-	products, err := data.GetProduct()
+	stru, err := data.MarshalPayloadToStruct(rw, r)
+	if err != nil {
+		return "", err
+	}
+	// log.Printf("%v", stru)
+	products, err := data.GetProduct(stru.RootURL, stru.ScrapeItemConfiguration, stru.ScrapeURLConfiguration...)
 	if err != nil {
 		return "", err
 	}
@@ -43,5 +48,9 @@ func (c *Crawler) getProduct(rw http.ResponseWriter, r *http.Request) (string, e
 		log.Print("error json")
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
 	}
+	// rw.Write([]byte(fmt.Sprintf("%v", *stru)))
+	//resp, _ := ioutil.ReadAll(r.Body)
+	//rw.Write(resp)
+
 	return "", nil
 }

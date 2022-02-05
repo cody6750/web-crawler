@@ -68,7 +68,6 @@ func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFro
 
 func extractURLFromHTML(token html.Token) (string, error) {
 	if isEmptyToken(token) {
-		log.Print("is empty1")
 		return "", errExtractURLFromHTML
 	}
 	hrefValue, error := getHTTPAttributeValueFromToken(token, hrefAttribute)

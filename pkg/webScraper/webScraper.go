@@ -2,7 +2,9 @@ package webcrawler
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 
@@ -38,21 +40,21 @@ type WebScraper struct {
 
 //ScrapeURLConfiguration ...
 type ScrapeURLConfiguration struct {
-	ConfigurationName            string
-	ExtractFromHTMLConfiguration ExtractFromHTMLConfiguration
-	FormatURLConfiguration       FormatURLConfiguration
+	Name                         string                       `json:"Name"`
+	ExtractFromHTMLConfiguration ExtractFromHTMLConfiguration `json:"ExtractFromHTMLConfiguration"`
+	FormatURLConfiguration       FormatURLConfiguration       `json:"FormatURLConfiguration"`
 }
 
 //FormatURLConfiguration ...
 type FormatURLConfiguration struct {
-	SuffixExist      string
-	SuffixToAdd      string
-	SuffixToRemove   string
-	PrefixToAdd      string
-	PrefixExist      string
-	PrefixToRemove   string
-	ReplaceOldString string
-	ReplaceNewString string
+	SuffixExist      string `json:"SuffixExist"`
+	SuffixToAdd      string `json:"SuffixToAdd"`
+	SuffixToRemove   string `json:"SuffixToRemove"`
+	PrefixToAdd      string `json:"PrefixToAdd"`
+	PrefixExist      string `json:"PrefixExist"`
+	PrefixToRemove   string `json:"PrefixToRemove"`
+	ReplaceOldString string `json:"ReplaceOldString"`
+	ReplaceNewString string `json:"ReplaceNewString"`
 }
 
 //New ..
@@ -72,9 +74,15 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 		itemTagsToCheck    map[string]bool
 		URLsToCheck        map[string]bool
 	)
+	// log.Print(url)
+	// log.Print(scrapeItemConfiguration)
+	// log.Print(scrapeURLConfiguration)
 	//log.Printf("Scraping link: %v", url)
 	URLsToCheck = make(map[string]bool)
 	response := ConnectToWebsite(url.CurrentURL, w.HeaderKey, w.HeaderValue).Body
+	// body, _ := ioutil.ReadAll(response)
+	// log.Print(string(body))
+	// writeToFile(string(body))
 	if !IsEmpty(scrapeURLConfiguration) {
 		urlTagsToCheck, err = generateURLTagsToCheckMap(urlTagsToCheck, scrapeURLConfiguration)
 		if err != nil {
@@ -88,8 +96,6 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 		}
 	}
 	defer response.Close()
-	// strins, _ := ioutil.ReadAll(response)
-	// log.Print(string(strins))
 	// Parse HTML response by turning it into Tokens
 	z := html.NewTokenizer(response)
 	// This while loop parses through all of the tokens generated for the HTML response.
@@ -100,9 +106,11 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 		switch {
 		case tt == html.StartTagToken:
 			t := z.Token()
+			// log.Print("Start: " + t.String())
 			if IsEmpty(scrapeURLConfiguration) {
 				//TODO: Replace ExtractedURL with a channel
 				extractedURL, err = ExtractURL(t, URLsToCheck)
+				log.Print("extracting all url")
 				if err != nil {
 					continue
 				}
@@ -125,16 +133,36 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 				if err != nil {
 					continue
 				}
-				extractedItem.URL = extractedURLObject
+				extractedItem.URL = url
 				// extractedItem.printJSON()
 				ExtractedItems = append(ExtractedItems, &extractedItem)
 			}
 
 			// This is our break statement
 		case tt == html.ErrorToken:
+			// t := z.Token()
+			// log.Print("Error: " + t.String())
 			return &ScrapeResposne{RootURL: w.RootURL, ExtractedURLs: ExtractedURLs, ExtractedItem: ExtractedItems}, nil
 		}
 	}
+}
+
+func writeToFile(body string) {
+	f, err := os.Create("data.html")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	_, err2 := f.WriteString(body)
+
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	fmt.Println("done")
 }
 
 func generateItemTagsToCheckMap(itemTagsToCheck map[string]bool, scrapeItemConfiguration []ScrapeItemConfiguration) (map[string]bool, error) {

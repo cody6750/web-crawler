@@ -6,10 +6,11 @@ import (
 
 //ExtractFromHTMLConfiguration ...
 type ExtractFromHTMLConfiguration struct {
-	Tag            string
-	Attribute      string
-	AttributeValue string
-	AttributeToGet string
+	Tag            string `json:"Tag"`
+	Attribute      string `json:"Attribute"`
+	AttributeValue string `json:"AttributeValue"`
+	AttributeToGet string `json:"AttributeToGet"`
+	SkipToken      int    `json:"SkipToken"`
 }
 
 func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {

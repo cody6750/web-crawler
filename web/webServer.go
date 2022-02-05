@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/cody6750/codywebapi/webServer/handler"
+	"github.com/cody6750/web-crawler/web/handler"
 )
 
 func main() {
@@ -23,8 +23,8 @@ func main() {
 		Addr:         ":9090",
 		Handler:      sm,
 		IdleTimeout:  time.Second * 120,
-		ReadTimeout:  time.Second * 1,
-		WriteTimeout: time.Second * 1,
+		ReadTimeout:  time.Second * 50,
+		WriteTimeout: time.Second * 50,
 	}
 
 	go func() {

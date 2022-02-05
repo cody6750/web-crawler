@@ -10,9 +10,9 @@ import (
 
 //ScrapeItemConfiguration ...
 type ScrapeItemConfiguration struct {
-	ItemName    string
-	ItemToGet   ExtractFromHTMLConfiguration
-	ItemDetails map[string]ExtractFromHTMLConfiguration
+	ItemName    string                                  `json:"ItemName"`
+	ItemToGet   ExtractFromHTMLConfiguration            `json:"ItemToGet"`
+	ItemDetails map[string]ExtractFromHTMLConfiguration `json:"ItemDetails"`
 }
 
 //ExtractItemWithScrapItemConfiguration ...
@@ -61,18 +61,28 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 				for itemDetailName, itemDetails := range scrapeItemConfiguration.ItemDetails {
 					HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(currentToken, itemDetails.Attribute)
 					if (itemDetails.Tag == currentToken.Data && itemDetails.AttributeValue == HTTPAttributeValueFromToken) || (itemDetails.Tag == currentToken.Data && itemDetails.Attribute == "" && itemDetails.AttributeValue == "") {
-						if itemDetails.AttributeToGet != "" {
-							HTTPAttributeValueFromToken, _ = getHTTPAttributeValueFromToken(currentToken, itemDetails.AttributeToGet)
-							item.ItemDetails[itemDetailName] = HTTPAttributeValueFromToken
-							continue
-						} else {
-							for tokenType != html.TextToken {
-								tokenType = z.Next()
+						if _, exist := item.ItemDetails[itemDetailName]; !exist {
+							if itemDetails.AttributeToGet != "" {
+								HTTPAttributeValueFromToken, _ = getHTTPAttributeValueFromToken(currentToken, itemDetails.AttributeToGet)
+								item.ItemDetails[itemDetailName] = HTTPAttributeValueFromToken
+							} else {
+								if itemDetails.SkipToken != 0 {
+									for itemDetails.SkipToken >= 0 {
+										tokenType = z.Next()
+										if tokenType == html.TextToken {
+											itemDetails.SkipToken--
+											continue
+										}
+									}
+								} else {
+									for tokenType != html.TextToken {
+										tokenType = z.Next()
+									}
+								}
+								currentToken = z.Token()
+								str := currentToken.String()
+								item.ItemDetails[itemDetailName] = str
 							}
-							currentToken = z.Token()
-							str := currentToken.String()
-							item.ItemDetails[itemDetailName] = str
-							continue
 						}
 					}
 				}

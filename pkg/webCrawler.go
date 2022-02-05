@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	options "github.com/cody6750/codywebapi/webCrawler/options"
-	webcrawler "github.com/cody6750/codywebapi/webCrawler/webScraper"
-	webscraper "github.com/cody6750/codywebapi/webCrawler/webScraper"
+	options "github.com/cody6750/web-crawler/pkg/options"
+	webcrawler "github.com/cody6750/web-crawler/pkg/webScraper"
+	webscraper "github.com/cody6750/web-crawler/pkg/webScraper"
 )
 
 var (
@@ -23,9 +23,10 @@ var (
 
 // Metrics ...
 type Metrics struct {
-	urlsFound   int
-	urlsVisited int
-	itemsFound  int
+	duplicatedUrlsFound int
+	urlsFound           int
+	urlsVisited         int
+	itemsFound          int
 }
 
 //WebCrawler ...
@@ -168,10 +169,13 @@ func (w *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.Sc
 				defer webscraper.WaitGroup.Done()
 				scrapeResponse, _ := webscraper.Scrape(url, itemsToget, ScrapeURLConfiguration...)
 				w.incrementMetrics(&Metrics{urlsFound: len(scrapeResponse.ExtractedURLs), urlsVisited: 1, itemsFound: len(scrapeResponse.ExtractedItem)})
-				log.Printf("Go routine:%v | Crawling link: %v | Current depth: %v | Counter Link: %v | Url Found : %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, w.metrics.urlsVisited, w.metrics.urlsFound, w.metrics.itemsFound)
+				log.Printf("Go routine:%v | Crawling link: %v | Current depth: %v | Url Visited: %v | Url Found : %v | Duplicate Url found: %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, w.metrics.urlsVisited, w.metrics.urlsFound, w.metrics.duplicatedUrlsFound, w.metrics.itemsFound)
 				w.processScrapedUrls(scrapeResponse.ExtractedURLs)
-				w.collectWebScraperResponse <- scrapeResponse
 				w.pendingUrlsToCrawlCount <- -1
+				if !w.options.AllowEmptyItem && len(scrapeResponse.ExtractedItem) == 0 {
+					return
+				}
+				w.collectWebScraperResponse <- scrapeResponse
 			}()
 		case <-webscraper.Stop:
 			webscraper.WaitGroup.Wait()
@@ -192,6 +196,9 @@ func (w *WebCrawler) incrementMetrics(metrics *Metrics) *Metrics {
 	if metrics.itemsFound != 0 {
 		w.metrics.itemsFound += metrics.itemsFound
 	}
+	if metrics.duplicatedUrlsFound != 0 {
+		w.metrics.duplicatedUrlsFound += metrics.duplicatedUrlsFound
+	}
 	w.metricsLock.Unlock()
 	return metrics
 }
@@ -201,11 +208,12 @@ func (w *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 		return
 	}
 	if scrapedUrls[0].CurrentDepth > w.options.MaxDepth {
-		return
-	}
-	for _, url := range scrapedUrls {
-		w.pendingUrlsToCrawl <- url
-		w.pendingUrlsToCrawlCount <- 1
+		//contiue
+	} else {
+		for _, url := range scrapedUrls {
+			w.pendingUrlsToCrawl <- url
+			w.pendingUrlsToCrawlCount <- 1
+		}
 	}
 }
 
@@ -225,12 +233,19 @@ func (w *WebCrawler) processCrawledLinks() {
 				return
 			}
 			if url.CurrentURL == "" {
+				// log.Print("empty url")
+				w.pendingUrlsToCrawlCount <- -1
+				w.incrementMetrics(&Metrics{duplicatedUrlsFound: 1})
 				continue
 			}
 			_, visited := w.visited[url.CurrentURL]
 			if !visited {
 				w.visited[url.CurrentURL] = struct{}{}
 				w.urlsToCrawl <- url
+			} else {
+				// log.Print("already visited url")
+				w.incrementMetrics(&Metrics{duplicatedUrlsFound: 1})
+				w.pendingUrlsToCrawlCount <- -1
 			}
 		}
 	}
@@ -296,7 +311,7 @@ func (w *WebCrawler) livenessCheck() error {
 			go func() {
 				checkCounter = false
 				pastCounter := w.metrics.urlsVisited
-				time.Sleep(time.Second * 300)
+				time.Sleep(time.Second * 60)
 				presentCounter := w.metrics.urlsVisited
 				if pastCounter == presentCounter {
 					w.stopAllWebScrapers()

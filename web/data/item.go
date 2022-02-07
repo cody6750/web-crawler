@@ -48,7 +48,11 @@ func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeIt
 	crawler := webcrawler.NewCrawler()
 	crawler.Logger = logger
 	response, err := crawler.Crawl(url, itemsToget, ScrapeURLConfiguration...)
-	return response, err
+	if err != nil {
+		logger.WithError(err).Errorf("Failed to get item")
+		return response, err
+	}
+	return response, nil
 }
 
 // ToJSON ...

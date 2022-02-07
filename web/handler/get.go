@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/cody6750/web-crawler/web/data"
+	"github.com/sirupsen/logrus"
 )
 
 func (c *Crawler) getItem(rw http.ResponseWriter, r *http.Request) error {
-	c.logger.Info("Starting to call crawler getItem handler")
+	c.logger.WithFields(logrus.Fields{"Handler": c.Identifier, "Function": "getItem"}).Info("Starting to call handler")
 	payload, err := data.DecodeToPayload(r)
 	if err != nil {
 		c.logger.WithError(err).Error("Unable to call DecodeToPayload from the crawler handler")
@@ -24,6 +25,6 @@ func (c *Crawler) getItem(rw http.ResponseWriter, r *http.Request) error {
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
 		return err
 	}
-	c.logger.Info("Successfully called crawler getItem handler")
+	c.logger.WithFields(logrus.Fields{"Handler": c.Identifier, "Function": "getItem"}).Info("Successfully called handler")
 	return nil
 }

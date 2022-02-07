@@ -6,14 +6,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	Identifier string = "crawler"
+)
+
 // Crawler ...
 type Crawler struct {
-	logger *logrus.Logger
+	logger     *logrus.Logger
+	Identifier string
 }
 
 // NewCrawler ...
 func NewCrawler(l *logrus.Logger) *Crawler {
-	return &Crawler{l}
+	return &Crawler{Identifier: Identifier, logger: l}
 }
 
 func (c *Crawler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {

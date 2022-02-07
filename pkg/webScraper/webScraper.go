@@ -74,15 +74,8 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 		itemTagsToCheck    map[string]bool
 		URLsToCheck        map[string]bool
 	)
-	// log.Print(url)
-	// log.Print(scrapeItemConfiguration)
-	// log.Print(scrapeURLConfiguration)
-	//log.Printf("Scraping link: %v", url)
 	URLsToCheck = make(map[string]bool)
 	response := ConnectToWebsite(url.CurrentURL, w.HeaderKey, w.HeaderValue).Body
-	// body, _ := ioutil.ReadAll(response)
-	// log.Print(string(body))
-	// writeToFile(string(body))
 	if !IsEmpty(scrapeURLConfiguration) {
 		urlTagsToCheck, err = generateURLTagsToCheckMap(urlTagsToCheck, scrapeURLConfiguration)
 		if err != nil {

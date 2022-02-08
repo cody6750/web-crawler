@@ -1,6 +1,8 @@
 package webcrawler
 
 import (
+	"fmt"
+
 	"golang.org/x/net/html"
 )
 
@@ -14,9 +16,6 @@ type ExtractFromHTMLConfiguration struct {
 }
 
 func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {
-	if attributeToGet == "" {
-		return attributeValue, errEmptyParameter
-	}
 	for _, a := range token.Attr {
 		if a.Key == attributeToGet {
 			attributeValue = a.Val
@@ -24,7 +23,7 @@ func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (at
 		}
 	}
 	if attributeValue == "" {
-		return attributeValue, errEmptyParameter
+		return attributeValue, fmt.Errorf("unable to get attribute value from %v", attributeToGet)
 	}
 	return attributeValue, nil
 }

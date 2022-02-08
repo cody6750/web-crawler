@@ -237,12 +237,7 @@ func Test_formatURL(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := formatURL(tt.args.url, tt.args.formatURLConfig)
-			if err != tt.wantErr {
-				log.Printf("[TEST]: %v has failed\n\n", tt.name)
-				t.Errorf("formatURL() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			got := formatURL(tt.args.url, tt.args.formatURLConfig)
 			if got != tt.want {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("formatURL() = %v, want %v", got, tt.want)

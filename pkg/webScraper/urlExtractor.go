@@ -37,27 +37,21 @@ func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bo
 			continue
 		}
 		if !IsEmpty(scrapeURLConfiguration.FormatURLConfiguration) {
-			formatedURL, err := formatURL(ExtractedURL, scrapeURLConfiguration.FormatURLConfiguration)
-			if err != nil {
+			formatedURL := formatURL(ExtractedURL, scrapeURLConfiguration.FormatURLConfiguration)
+			if formatedURL == "" {
 				continue
 			}
-
 			if !isDuplicateURL(formatedURL, URLsToCheck) && ExtractedURL != "" {
 				return formatedURL, nil
 
 			}
 		} else {
-			log.Default().Printf("Extracted url: %v", ExtractedURL)
 			return ExtractedURL, nil
 		}
 	}
 	return "", nil
 }
 func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFromHTMLConfiguration) (string, error) {
-	if IsEmpty(urlConfig) {
-		log.Print("is empty")
-		return "", errExtractURLFromHTMLUsingConfiguration
-	}
 	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, urlConfig.Attribute)
 	if strings.Contains(HTTPAttributeValueFromToken, urlConfig.AttributeValue) {
 		hrefValue, _ := getHTTPAttributeValueFromToken(token, hrefAttribute)
@@ -67,9 +61,6 @@ func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFro
 }
 
 func extractURLFromHTML(token html.Token) (string, error) {
-	if isEmptyToken(token) {
-		return "", errExtractURLFromHTML
-	}
 	hrefValue, error := getHTTPAttributeValueFromToken(token, hrefAttribute)
 	if error != nil {
 		return "", errExtractURLFromHTML
@@ -78,13 +69,6 @@ func extractURLFromHTML(token html.Token) (string, error) {
 		return hrefValue, errExtractURLFromHTML
 	}
 	return hrefValue, nil
-}
-
-func isEmptyToken(token html.Token) bool {
-	if token.Data == "" && len(token.Attr) == 0 {
-		return true
-	}
-	return false
 }
 
 func isDuplicateURL(url string, URLsToCheck map[string]bool) bool {

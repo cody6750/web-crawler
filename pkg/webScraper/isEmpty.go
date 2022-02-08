@@ -1,22 +1,28 @@
 package webcrawler
 
-import "reflect"
+import (
+	"reflect"
+
+	"golang.org/x/net/html"
+)
 
 //IsEmpty ...
 func IsEmpty(i interface{}) bool {
-	switch o := i.(type) {
+	switch i := i.(type) {
 	case ExtractFromHTMLConfiguration:
-		return reflect.DeepEqual(o, ExtractFromHTMLConfiguration{})
+		return reflect.DeepEqual(i, ExtractFromHTMLConfiguration{})
+	case html.Token:
+		return i.Data == "" && len(i.Attr) == 0
 	case FormatURLConfiguration:
-		return reflect.DeepEqual(o, FormatURLConfiguration{})
+		return reflect.DeepEqual(i, FormatURLConfiguration{})
 	case []ScrapeItemConfiguration:
-		return len(o) == 0
+		return len(i) == 0
 	case []ScrapeURLConfiguration:
-		return len(o) == 0
+		return len(i) == 0
 	case map[string]ExtractFromHTMLConfiguration:
-		return len(o) == 0
+		return len(i) == 0
 	case map[string]struct{}:
-		return len(o) == 0
+		return len(i) == 0
 	default:
 		return false
 	}

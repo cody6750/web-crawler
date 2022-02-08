@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -28,14 +29,14 @@ type ScrapeResposne struct {
 
 //WebScraper ...
 type WebScraper struct {
+	Logger              *logrus.Logger
 	BlackListedURLPaths map[string]struct{}
 	RootURL             string
 	ScraperNumber       int
-	// Queue         chan []string
-	Stop        chan struct{}
-	WaitGroup   sync.WaitGroup
-	HeaderKey   string
-	HeaderValue string
+	Stop                chan struct{}
+	WaitGroup           sync.WaitGroup
+	HeaderKey           string
+	HeaderValue         string
 }
 
 //ScrapeURLConfiguration ...
@@ -59,12 +60,13 @@ type FormatURLConfiguration struct {
 
 //New ..
 func New() *WebScraper {
-	webScraper := &WebScraper{}
-	return webScraper
+	ws := &WebScraper{}
+	ws.Logger = logrus.New()
+	return ws
 }
 
 //Scrape ..
-func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfiguration, scrapeURLConfiguration ...ScrapeURLConfiguration) (*ScrapeResposne, error) {
+func (ws *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfiguration, scrapeURLConfiguration ...ScrapeURLConfiguration) (*ScrapeResposne, error) {
 	var (
 		extractedURL       string
 		extractedURLObject *URL
@@ -75,17 +77,17 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 		URLsToCheck        map[string]bool
 	)
 	URLsToCheck = make(map[string]bool)
-	response := ConnectToWebsite(url.CurrentURL, w.HeaderKey, w.HeaderValue).Body
+	response := ConnectToWebsite(url.CurrentURL, ws.HeaderKey, ws.HeaderValue).Body
 	if !IsEmpty(scrapeURLConfiguration) {
 		urlTagsToCheck, err = generateURLTagsToCheckMap(urlTagsToCheck, scrapeURLConfiguration)
 		if err != nil {
-			return nil, errors.New("Failed to generate url tags")
+			return nil, errors.New("failed to generate url tags")
 		}
 	}
 	if !IsEmpty(scrapeItemConfiguration) {
 		itemTagsToCheck, err = generateItemTagsToCheckMap(itemTagsToCheck, scrapeItemConfiguration)
 		if err != nil {
-			return nil, errors.New("Failed to generate item tags")
+			return nil, errors.New("failed to generate item tags")
 		}
 	}
 	defer response.Close()
@@ -99,11 +101,9 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 		switch {
 		case tt == html.StartTagToken:
 			t := z.Token()
-			// log.Print("Start: " + t.String())
 			if IsEmpty(scrapeURLConfiguration) {
 				//TODO: Replace ExtractedURL with a channel
 				extractedURL, err = ExtractURL(t, URLsToCheck)
-				log.Print("extracting all url")
 				if err != nil {
 					continue
 				}
@@ -113,10 +113,10 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 					continue
 				}
 			}
-			if extractedURL != "" && !IsEmpty(w.BlackListedURLPaths) {
-				isBlackListedURLPath := w.isBlackListedURLPath(extractedURL)
+			if extractedURL != "" && !IsEmpty(ws.BlackListedURLPaths) {
+				isBlackListedURLPath := ws.isBlackListedURLPath(extractedURL)
 				if !isBlackListedURLPath {
-					extractedURLObject = &URL{CurrentURL: extractedURL, ParentURL: url.CurrentURL, RootURL: w.RootURL, CurrentDepth: url.CurrentDepth + 1, MaxDepth: url.MaxDepth}
+					extractedURLObject = &URL{CurrentURL: extractedURL, ParentURL: url.CurrentURL, RootURL: ws.RootURL, CurrentDepth: url.CurrentDepth + 1, MaxDepth: url.MaxDepth}
 					ExtractedURLs = append(ExtractedURLs, extractedURLObject)
 				}
 			}
@@ -133,14 +133,12 @@ func (w *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfig
 
 			// This is our break statement
 		case tt == html.ErrorToken:
-			// t := z.Token()
-			// log.Print("Error: " + t.String())
-			return &ScrapeResposne{RootURL: w.RootURL, ExtractedURLs: ExtractedURLs, ExtractedItem: ExtractedItems}, nil
+			return &ScrapeResposne{RootURL: ws.RootURL, ExtractedURLs: ExtractedURLs, ExtractedItem: ExtractedItems}, nil
 		}
 	}
 }
 
-func writeToFile(body string) {
+func WriteToFile(body string) {
 	f, err := os.Create("data.html")
 
 	if err != nil {
@@ -176,7 +174,7 @@ func generateItemTagsToCheckMap(itemTagsToCheck map[string]bool, scrapeItemConfi
 
 func generateURLTagsToCheckMap(urlTagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfiguration) (map[string]bool, error) {
 	if IsEmpty(scrapeURLConfiguration) {
-		return nil, errors.New("Scrap configuration is empty")
+		return nil, errors.New("scrap configuration is empty")
 	}
 	// If htmlURLConfiguration parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
 	for _, scrapeURLConfiguration := range scrapeURLConfiguration {
@@ -190,7 +188,7 @@ func generateURLTagsToCheckMap(urlTagsToCheck map[string]bool, scrapeURLConfigur
 	return urlTagsToCheck, nil
 }
 
-func (w *WebScraper) isBlackListedURLPath(url string) bool {
+func (ws *WebScraper) isBlackListedURLPath(url string) bool {
 	var urlToCheck string
 	splitURLPAth := strings.SplitN(url, "/", 4)
 	if len(splitURLPAth) < 4 {
@@ -204,13 +202,11 @@ func (w *WebScraper) isBlackListedURLPath(url string) bool {
 			urlToCheck += "/"
 			continue
 		}
-		if _, exist := w.BlackListedURLPaths[urlToCheck]; exist {
-			log.Printf("URL %s is blacklisted", url)
+		if _, exist := ws.BlackListedURLPaths[urlToCheck]; exist {
 			return true
 		}
 		urlToCheck += "/"
-		if _, exist := w.BlackListedURLPaths[urlToCheck]; exist {
-			log.Printf("URL %s is blacklisted", url)
+		if _, exist := ws.BlackListedURLPaths[urlToCheck]; exist {
 			return true
 		}
 	}

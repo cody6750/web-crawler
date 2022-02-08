@@ -15,7 +15,7 @@ type Item struct {
 	ItemDetails map[string]string
 }
 
-func (i *Item) printJSON() {
+func (i *Item) PrintJSON() {
 	json, _ := json.MarshalIndent(i, "", "    ")
 	output := string(json)
 	output = strings.Replace(output, "\\u003c", "<", -1)

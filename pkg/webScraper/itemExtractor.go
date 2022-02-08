@@ -2,6 +2,7 @@ package webcrawler
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -44,7 +45,7 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 	)
 
 	if token.Type != html.StartTagToken {
-		return item, errors.New("Unable to parse item, not a start tag")
+		return item, fmt.Errorf("unable to parse item, not a start tag")
 	}
 	itemDetailTagsToCheck, _ = generateItemDetailsTagsToCheckMap(itemDetailTagsToCheck, scrapeItemConfiguration)
 	if err != nil {
@@ -91,18 +92,13 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 			tagStack.pop()
 		case tokenType == html.ErrorToken:
 			tagStack.pop()
-			// item.printJSON()
 			return item, nil
 		}
 	}
-	// item.printJSON()
 	return item, nil
 }
 
 func generateItemDetailsTagsToCheckMap(itemDetailTagsToCheck map[string]bool, scrapeItemConfiguration ScrapeItemConfiguration) (map[string]bool, error) {
-	if IsEmpty(scrapeItemConfiguration.ItemDetails) {
-		return nil, errors.New("Item is empty")
-	}
 	for _, item := range scrapeItemConfiguration.ItemDetails {
 		if len(itemDetailTagsToCheck) == 0 {
 			itemDetailTagsToCheck = make(map[string]bool)

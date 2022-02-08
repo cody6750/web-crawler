@@ -86,28 +86,28 @@ func TestWebCrawler_Crawl(t *testing.T) {
 				url: "https://www.newegg.com/p/pl?d=RTX+3080",
 				ScrapeURLConfiguration: []webscraper.ScrapeURLConfig{
 					{
-						FormatURLConfiguration: webscraper.FormatURLConfiguration{
+						FormatURLConfig: webscraper.FormatURLConfig{
 							PrefixExist:    "////",
 							PrefixToRemove: "////",
 							PrefixToAdd:    "http://",
 						},
 					},
 					{
-						FormatURLConfiguration: webscraper.FormatURLConfiguration{
+						FormatURLConfig: webscraper.FormatURLConfig{
 							PrefixExist:    "///",
 							PrefixToRemove: "///",
 							PrefixToAdd:    "http://",
 						},
 					},
 					{
-						FormatURLConfiguration: webscraper.FormatURLConfiguration{
+						FormatURLConfig: webscraper.FormatURLConfig{
 							PrefixExist:    "//",
 							PrefixToRemove: "//",
 							PrefixToAdd:    "http://",
 						},
 					},
 					{
-						FormatURLConfiguration: webscraper.FormatURLConfiguration{
+						FormatURLConfig: webscraper.FormatURLConfig{
 							PrefixExist: "/",
 							PrefixToAdd: "http://newegg.com",
 						},
@@ -116,12 +116,12 @@ func TestWebCrawler_Crawl(t *testing.T) {
 				ScrapeItemConfiguration: []webscraper.ScrapeItemConfig{
 					{
 						ItemName: "Graphics Cards",
-						ItemToGet: webscraper.ExtractFromHTMLConfiguration{
+						ItemToGet: webscraper.ExtractFromTokenConfig{
 							Tag:            "div",
 							Attribute:      "class",
 							AttributeValue: "item-container",
 						},
-						ItemDetails: map[string]webscraper.ExtractFromHTMLConfiguration{
+						ItemDetails: map[string]webscraper.ExtractFromTokenConfig{
 							"title": {
 								Tag:            "a",
 								Attribute:      "class",

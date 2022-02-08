@@ -6,8 +6,8 @@ import (
 	"golang.org/x/net/html"
 )
 
-//ExtractFromHTMLConfiguration ...
-type ExtractFromHTMLConfiguration struct {
+//ExtractFromTokenConfig ...
+type ExtractFromTokenConfig struct {
 	Tag            string `json:"Tag"`
 	Attribute      string `json:"Attribute"`
 	AttributeValue string `json:"AttributeValue"`

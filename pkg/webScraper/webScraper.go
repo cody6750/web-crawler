@@ -1,7 +1,6 @@
 package webcrawler
 
 import (
-	"errors"
 	"strings"
 	"sync"
 
@@ -10,8 +9,7 @@ import (
 )
 
 var (
-	errExtractURLFromHTML error = errors.New("")
-	err                   error
+	err error
 )
 
 //WebScraper ...
@@ -41,17 +39,16 @@ func New() *WebScraper {
 }
 
 //Scrape ..
-func (ws *WebScraper) Scrape(url *URL, itemsToGet []ScrapeItemConfig, urlsToGet ...ScrapeURLConfig) (*Response, error) {
+func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ...ScrapeURLConfig) (*Response, error) {
 	var (
-		extractedURL       string
-		extractedURLObject *URL
-		ExtractedURLs      []*URL
-		ExtractedItems     []*Item
-		itemTagsToCheck    map[string]bool
-		urlTagsToCheck     map[string]bool
-		URLsToCheck        map[string]bool = make(map[string]bool)
+		url             string
+		urls            []*URL
+		items           []*Item
+		itemTagsToCheck map[string]bool
+		urlTagsToCheck  map[string]bool
+		urlsToCheck     map[string]bool = make(map[string]bool)
 	)
-	response := ConnectToWebsite(url.CurrentURL, ws.HeaderKey, ws.HeaderValue).Body
+	response := ConnectToWebsite(u.CurrentURL, ws.HeaderKey, ws.HeaderValue).Body
 	if !IsEmpty(urlsToGet) {
 		urlTagsToCheck = ws.generateTagsToCheckMap(urlsToGet)
 	}
@@ -71,58 +68,40 @@ func (ws *WebScraper) Scrape(url *URL, itemsToGet []ScrapeItemConfig, urlsToGet 
 			t := z.Token()
 			if IsEmpty(urlsToGet) {
 				//TODO: Replace ExtractedURL with a channel
-				extractedURL, err = ExtractURL(t, URLsToCheck)
-				if err != nil {
-					continue
-				}
+				url = ExtractURL(t, urlsToCheck)
 			} else {
-				extractedURL, err = ExtractURLWithScrapURLConfig(t, URLsToCheck, urlTagsToCheck, urlsToGet)
-				if err != nil {
-					continue
-				}
+				url, _ = ExtractURLWithScrapURLConfig(t, urlsToCheck, urlTagsToCheck, urlsToGet)
 			}
-			if extractedURL != "" && !IsEmpty(ws.BlackListedURLPaths) {
-				isBlackListedURLPath := ws.isBlackListedURLPath(extractedURL)
-				if !isBlackListedURLPath {
-					extractedURLObject = &URL{CurrentURL: extractedURL, ParentURL: url.CurrentURL, RootURL: ws.RootURL, CurrentDepth: url.CurrentDepth + 1, MaxDepth: url.MaxDepth}
-					ExtractedURLs = append(ExtractedURLs, extractedURLObject)
+
+			if url != "" && !IsEmpty(ws.BlackListedURLPaths) {
+				if isBlackListedURLPath := ws.isBlackListedURLPath(url); !isBlackListedURLPath {
+					urls = append(urls, &URL{CurrentURL: url, ParentURL: u.CurrentURL, RootURL: ws.RootURL, CurrentDepth: u.CurrentDepth + 1, MaxDepth: u.MaxDepth})
 				}
 			}
 
 			if !IsEmpty(itemsToGet) {
-				extractedItem, err := ExtractItemWithScrapItemConfig(t, z, itemTagsToCheck, itemsToGet)
+				item, err := ExtractItemWithScrapItemConfig(t, z, itemTagsToCheck, itemsToGet)
 				if err != nil {
 					continue
 				}
-				extractedItem.URL = url
-				//extractedItem.printJSON()
-				ExtractedItems = append(ExtractedItems, &extractedItem)
+				item.URL = u
+				items = append(items, &item)
 			}
 
 			// This is our break statement
 		case tt == html.ErrorToken:
-			return &Response{RootURL: ws.RootURL, ExtractedURLs: ExtractedURLs, ExtractedItem: ExtractedItems}, nil
+			return &Response{RootURL: ws.RootURL, ExtractedURLs: urls, ExtractedItem: items}, nil
 		}
 	}
 }
 
-// func generateItemTagsToCheckMap(scrapeItemConfiguration []ScrapeItemConfiguration) map[string]bool {
-// 	// If item parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
-// 	var itemTagsToCheck = make(map[string]bool)
-// 	for _, item := range scrapeItemConfiguration {
-// 		if !IsEmpty(item.ItemToGet) {
-// 			itemTagsToCheck[item.ItemToGet.Tag] = true
-// 		}
-// 	}
-// 	return itemTagsToCheck
-// }
 func (ws *WebScraper) generateTagsToCheckMap(t interface{}) map[string]bool {
 	switch t := t.(type) {
 	case []ScrapeURLConfig:
 		var urlTagsToCheck = make(map[string]bool)
 		for _, ScrapeURLConfig := range t {
-			if !IsEmpty(ScrapeURLConfig.ExtractFromHTMLConfiguration) {
-				urlTagsToCheck[ScrapeURLConfig.ExtractFromHTMLConfiguration.Tag] = true
+			if !IsEmpty(ScrapeURLConfig.ExtractFromTokenConfig) {
+				urlTagsToCheck[ScrapeURLConfig.ExtractFromTokenConfig.Tag] = true
 			}
 		}
 		return urlTagsToCheck
@@ -140,25 +119,14 @@ func (ws *WebScraper) generateTagsToCheckMap(t interface{}) map[string]bool {
 	return map[string]bool{}
 }
 
-// func generateURLTagsToCheckMap(ScrapeURLConfig []ScrapeURLConfig) map[string]bool {
-// 	// If htmlURLConfiguration parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
-// 	var urlTagsToCheck = make(map[string]bool)
-// 	for _, ScrapeURLConfig := range ScrapeURLConfig {
-// 		if !IsEmpty(ScrapeURLConfig.ExtractFromHTMLConfiguration) {
-// 			urlTagsToCheck[ScrapeURLConfig.ExtractFromHTMLConfiguration.Tag] = true
-// 		}
-// 	}
-// 	return urlTagsToCheck
-// }
-
 func (ws *WebScraper) isBlackListedURLPath(url string) bool {
 	var urlToCheck string
-	splitURLPAth := strings.SplitN(url, "/", 4)
-	if len(splitURLPAth) < 4 {
+	splitURLPath := strings.SplitN(url, "/", 4)
+	if len(splitURLPath) < 4 {
 		return false
 	}
-	urlPath := "/" + splitURLPAth[3]
-	splitURLPath := strings.Split(urlPath, "/")
+	urlPath := "/" + splitURLPath[3]
+	splitURLPath = strings.Split(urlPath, "/")
 	for _, splitURL := range splitURLPath {
 		urlToCheck += splitURL
 		if urlToCheck == "" {

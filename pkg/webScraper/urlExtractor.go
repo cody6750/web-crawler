@@ -11,52 +11,61 @@ const (
 	hrefAttribute string = "href"
 )
 
+//URL ...
+type URL struct {
+	RootURL      string
+	ParentURL    string
+	CurrentURL   string
+	CurrentDepth int
+	MaxDepth     int
+}
+
 //ScrapeURLConfig ...
 type ScrapeURLConfig struct {
-	Name                         string                       `json:"Name"`
-	ExtractFromHTMLConfiguration ExtractFromHTMLConfiguration `json:"ExtractFromHTMLConfiguration"`
-	FormatURLConfiguration       FormatURLConfiguration       `json:"FormatURLConfiguration"`
+	Name                   string                 `json:"Name"`
+	ExtractFromTokenConfig ExtractFromTokenConfig `json:"ExtractFromTokenConfig"`
+	FormatURLConfig        FormatURLConfig        `json:"FormatURLConfiguration"`
 }
 
 //ExtractURL ...
-func ExtractURL(t html.Token, URLsToCheck map[string]bool) (string, error) {
-	ExtractedURL, _ := extractURLFromHTML(t)
-	if ExtractedURL != "" && !isDuplicateURL(ExtractedURL, URLsToCheck) {
-		return ExtractedURL, nil
+func ExtractURL(t html.Token, extractedUrls map[string]bool) string {
+	url, _ := extractURLFromToken(t)
+	if url != "" && !isDuplicateURL(url, extractedUrls) {
+		return url
 	}
-	return ExtractedURL, nil
+	return ""
 }
 
 //ExtractURLWithScrapURLConfig ...
-func ExtractURLWithScrapURLConfig(t html.Token, URLsToCheck map[string]bool, TagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfig) (string, error) {
-	var ExtractedURL string
-	for _, scrapeURLConfiguration := range scrapeURLConfiguration {
-		if !IsEmpty(scrapeURLConfiguration.ExtractFromHTMLConfiguration) {
-			if _, tagExist := TagsToCheck[t.Data]; tagExist {
-				ExtractedURL, _ = extractURLFromHTMLUsingConfiguration(t, scrapeURLConfiguration.ExtractFromHTMLConfiguration)
+func ExtractURLWithScrapURLConfig(t html.Token, urlsToCheck map[string]bool, tagsToCheck map[string]bool, scrapeURLConfigs []ScrapeURLConfig) (string, error) {
+	var url string
+	for _, scrapeURLConfig := range scrapeURLConfigs {
+		if !IsEmpty(scrapeURLConfig.ExtractFromTokenConfig) {
+			if _, exist := tagsToCheck[t.Data]; exist {
+				url, _ = extractURLFromTokenUsingConfig(t, scrapeURLConfig.ExtractFromTokenConfig)
 			}
 		} else {
-			ExtractedURL, _ = extractURLFromHTML(t)
+			url, _ = extractURLFromToken(t)
 		}
-		if ExtractedURL == "" {
+		if url == "" {
 			continue
 		}
-		if !IsEmpty(scrapeURLConfiguration.FormatURLConfiguration) {
-			formatedURL := formatURL(ExtractedURL, scrapeURLConfiguration.FormatURLConfiguration)
+		if !IsEmpty(scrapeURLConfig.FormatURLConfig) {
+			formatedURL := formatURL(url, scrapeURLConfig.FormatURLConfig)
 			if formatedURL == "" {
 				continue
 			}
-			if !isDuplicateURL(formatedURL, URLsToCheck) && ExtractedURL != "" {
+			if !isDuplicateURL(formatedURL, urlsToCheck) && url != "" {
 				return formatedURL, nil
 
 			}
 		} else {
-			return ExtractedURL, nil
+			return url, nil
 		}
 	}
-	return "", nil
+	return url, fmt.Errorf("Unable to extract url with scrap url config")
 }
-func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFromHTMLConfiguration) (string, error) {
+func extractURLFromTokenUsingConfig(token html.Token, urlConfig ExtractFromTokenConfig) (string, error) {
 	value, err := extractAttributeValue(token, urlConfig.Attribute)
 	if err != nil {
 		return value, err
@@ -68,21 +77,18 @@ func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFro
 	return value, fmt.Errorf("unable to extract url from token using the url configuration, %v retrived", value)
 }
 
-func extractURLFromHTML(token html.Token) (string, error) {
-	hrefValue, error := extractAttributeValue(token, hrefAttribute)
-	if error != nil {
-		return "", errExtractURLFromHTML
-	}
-	if hrefValue == "" {
-		return hrefValue, errExtractURLFromHTML
+func extractURLFromToken(token html.Token) (string, error) {
+	hrefValue, err := extractAttributeValue(token, hrefAttribute)
+	if err != nil {
+		return hrefValue, err
 	}
 	return hrefValue, nil
 }
 
-func isDuplicateURL(url string, URLsToCheck map[string]bool) bool {
-	if _, urlExist := URLsToCheck[url]; urlExist {
+func isDuplicateURL(url string, urlsToCheck map[string]bool) bool {
+	if _, exist := urlsToCheck[url]; exist {
 		return true
 	}
-	URLsToCheck[url] = true
+	urlsToCheck[url] = true
 	return false
 }

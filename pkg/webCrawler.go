@@ -41,7 +41,7 @@ type WebCrawler struct {
 	Options                   *options.Options
 }
 
-//New ...
+//NewCrawler ...
 func NewCrawler() *WebCrawler {
 	return NewWithOptions(options.New())
 }

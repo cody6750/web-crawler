@@ -9,17 +9,17 @@ import (
 //IsEmpty ...
 func IsEmpty(i interface{}) bool {
 	switch i := i.(type) {
-	case ExtractFromHTMLConfiguration:
-		return reflect.DeepEqual(i, ExtractFromHTMLConfiguration{})
+	case ExtractFromTokenConfig:
+		return reflect.DeepEqual(i, ExtractFromTokenConfig{})
 	case html.Token:
 		return i.Data == "" && len(i.Attr) == 0
-	case FormatURLConfiguration:
-		return reflect.DeepEqual(i, FormatURLConfiguration{})
+	case FormatURLConfig:
+		return reflect.DeepEqual(i, FormatURLConfig{})
 	case []ScrapeItemConfig:
 		return len(i) == 0
 	case []ScrapeURLConfig:
 		return len(i) == 0
-	case map[string]ExtractFromHTMLConfiguration:
+	case map[string]ExtractFromTokenConfig:
 		return len(i) == 0
 	case map[string]struct{}:
 		return len(i) == 0

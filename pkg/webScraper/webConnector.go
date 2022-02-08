@@ -7,12 +7,12 @@ import (
 )
 
 //ConnectToWebsite ...
-func ConnectToWebsite(webPageURL, headerKey, headerValue string) *http.Response {
+func ConnectToWebsite(url, headerKey, headerValue string) *http.Response {
 	client := &http.Client{
 		Timeout: 60 * time.Second,
 	}
 
-	request, err := http.NewRequest("GET", webPageURL, nil)
+	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

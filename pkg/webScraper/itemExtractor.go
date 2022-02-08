@@ -1,7 +1,6 @@
 package webcrawler
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -9,25 +8,40 @@ import (
 	"golang.org/x/net/html"
 )
 
+//Item ...
+type Item struct {
+	ItemName    string
+	URL         *URL
+	TimeQueried string
+	DateQueried string
+	ItemDetails map[string]string
+}
+
 //ScrapeItemConfig ...
 type ScrapeItemConfig struct {
-	ItemName    string                                  `json:"ItemName"`
-	ItemToGet   ExtractFromHTMLConfiguration            `json:"ItemToGet"`
-	ItemDetails map[string]ExtractFromHTMLConfiguration `json:"ItemDetails"`
+	ItemName    string                            `json:"ItemName"`
+	ItemToGet   ExtractFromTokenConfig            `json:"ItemToGet"`
+	ItemDetails map[string]ExtractFromTokenConfig `json:"ItemDetails"`
 }
 
 //ExtractItemWithScrapItemConfig ...
 func ExtractItemWithScrapItemConfig(t html.Token, z *html.Tokenizer, itemTagsToCheck map[string]bool, scrapeItemConfig []ScrapeItemConfig) (Item, error) {
 	if itemTagsToCheck[t.Data] {
 		for _, scrapeItemConfig := range scrapeItemConfig {
-			HTTPAttributeValueFromToken, _ := extractAttributeValue(t, scrapeItemConfig.ItemToGet.Attribute)
+			HTTPAttributeValueFromToken, err := extractAttributeValue(t, scrapeItemConfig.ItemToGet.Attribute)
+			if err != nil {
+				return Item{}, err
+			}
 			if (t.Data == scrapeItemConfig.ItemToGet.Tag && HTTPAttributeValueFromToken == scrapeItemConfig.ItemToGet.AttributeValue) || (scrapeItemConfig.ItemToGet.Attribute == "" && scrapeItemConfig.ItemToGet.AttributeValue == "") {
-				extractedItem, _ := parseTokenForItemDetails(t, z, scrapeItemConfig)
+				extractedItem, err := parseTokenForItemDetails(t, z, scrapeItemConfig)
+				if err != nil {
+					return Item{}, err
+				}
 				return extractedItem, nil
 			}
 		}
 	}
-	return Item{}, errors.New("")
+	return Item{}, fmt.Errorf("unable to extract item with scrape item config")
 }
 
 func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemConfig ScrapeItemConfig) (Item, error) {
@@ -105,6 +119,5 @@ func generateItemDetailsTagsToCheckMap(itemDetailTagsToCheck map[string]bool, sc
 		}
 		itemDetailTagsToCheck[item.Tag] = true
 	}
-
 	return itemDetailTagsToCheck, nil
 }

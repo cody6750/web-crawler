@@ -4,8 +4,8 @@ import (
 	"strings"
 )
 
-//FormatURLConfiguration ...
-type FormatURLConfiguration struct {
+//FormatURLConfig ...
+type FormatURLConfig struct {
 	SuffixExist      string `json:"SuffixExist"`
 	SuffixToAdd      string `json:"SuffixToAdd"`
 	SuffixToRemove   string `json:"SuffixToRemove"`
@@ -16,7 +16,7 @@ type FormatURLConfiguration struct {
 	ReplaceNewString string `json:"ReplaceNewString"`
 }
 
-func formatURL(url string, config FormatURLConfiguration) string {
+func formatURL(url string, config FormatURLConfig) string {
 	if strings.HasPrefix(url, config.PrefixExist) && strings.HasSuffix(url, config.SuffixExist) && strings.Contains(url, config.ReplaceOldString) {
 		if config.ReplaceOldString != "" && config.ReplaceNewString != "" {
 			url = strings.ReplaceAll(url, config.ReplaceOldString, config.ReplaceNewString)

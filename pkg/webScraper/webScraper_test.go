@@ -10,7 +10,7 @@ import (
 func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 	type args struct {
 		token     html.Token
-		urlConfig ExtractFromHTMLConfiguration
+		urlConfig ExtractFromTokenConfig
 	}
 	tests := []struct {
 		name               string
@@ -28,7 +28,7 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 						{Key: "href", Val: "amazon.com"},
 					},
 				},
-				urlConfig: ExtractFromHTMLConfiguration{
+				urlConfig: ExtractFromTokenConfig{
 					Tag:            "span",
 					Attribute:      "class",
 					AttributeValue: "a-link-normal",
@@ -47,7 +47,7 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 						{Key: "href", Val: "amazon.com"},
 					},
 				},
-				urlConfig: ExtractFromHTMLConfiguration{
+				urlConfig: ExtractFromTokenConfig{
 					Tag:            "",
 					Attribute:      "class",
 					AttributeValue: "not it sis",
@@ -61,15 +61,15 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := extractURLFromHTMLUsingConfiguration(tt.args.token, tt.args.urlConfig)
+			got, err := extractURLFromTokenUsingConfig(tt.args.token, tt.args.urlConfig)
 			if got != tt.wantAttributeValue {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
-				t.Errorf("extractURLFromHTMLUsingConfiguration() = %v, want %v", got, tt.wantAttributeValue)
+				t.Errorf("extractURLFromTokenUsingConfig() = %v, want %v", got, tt.wantAttributeValue)
 				return
 			}
 			if err != tt.wantErr {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
-				t.Errorf("extractURLFromHTMLUsingConfiguration() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("extractURLFromTokenUsingConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			log.Printf("[TEST]: %v has successfully finished\n\n", tt.name)
@@ -112,12 +112,12 @@ func Test_extractURLFromHTML(t *testing.T) {
 				},
 			},
 			wantURL: "",
-			wantErr: errExtractURLFromHTML,
+			wantErr: nil,
 		}}
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := extractURLFromHTML(tt.args.token)
+			got, err := extractURLFromToken(tt.args.token)
 			if got != tt.wantURL {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("extractURLFromHTML() = %v, want %v", got, tt.wantURL)
@@ -193,7 +193,7 @@ func Test_getHTTPAttributeValueFromToken(t *testing.T) {
 func Test_formatURL(t *testing.T) {
 	type args struct {
 		url             string
-		formatURLConfig FormatURLConfiguration
+		formatURLConfig FormatURLConfig
 	}
 	tests := []struct {
 		name    string
@@ -205,7 +205,7 @@ func Test_formatURL(t *testing.T) {
 			name: "Formated correctly",
 			args: args{
 				url: "ReplacePrefix/RTX_3070/ReplaceSuffix",
-				formatURLConfig: FormatURLConfiguration{
+				formatURLConfig: FormatURLConfig{
 					SuffixToAdd:      "checkout",
 					SuffixToRemove:   "ReplaceSuffix",
 					PrefixToAdd:      "amazon.com",
@@ -221,7 +221,7 @@ func Test_formatURL(t *testing.T) {
 			name: "Formated incorrectly",
 			args: args{
 				url: "ReplaceSuffix/RTX_3070/ReplacePrefix",
-				formatURLConfig: FormatURLConfiguration{
+				formatURLConfig: FormatURLConfig{
 					SuffixToAdd:      "DOESNOTWORK",
 					SuffixToRemove:   "DOESNOTWORK",
 					PrefixToAdd:      "DOESNOTWORK",
@@ -251,7 +251,7 @@ func Test_formatURL(t *testing.T) {
 
 func Test_isEmptyFormatURLConfiguration(t *testing.T) {
 	type args struct {
-		formatURLConfiguration FormatURLConfiguration
+		formatURLConfiguration FormatURLConfig
 	}
 	tests := []struct {
 		name string
@@ -262,14 +262,14 @@ func Test_isEmptyFormatURLConfiguration(t *testing.T) {
 			name: "Is empty",
 			want: true,
 			args: args{
-				formatURLConfiguration: FormatURLConfiguration{},
+				formatURLConfiguration: FormatURLConfig{},
 			},
 		},
 		{
 			name: "Is not empty",
 			want: false,
 			args: args{
-				formatURLConfiguration: FormatURLConfiguration{
+				formatURLConfiguration: FormatURLConfig{
 					SuffixToRemove: "not empty",
 				},
 			},
@@ -291,7 +291,7 @@ func Test_isEmptyFormatURLConfiguration(t *testing.T) {
 
 func Test_isEmptyExtractFromHTMLConfiguration(t *testing.T) {
 	type args struct {
-		extractFromHTMLConfiguration ExtractFromHTMLConfiguration
+		extractFromHTMLConfiguration ExtractFromTokenConfig
 	}
 	tests := []struct {
 		name string
@@ -301,14 +301,14 @@ func Test_isEmptyExtractFromHTMLConfiguration(t *testing.T) {
 		{
 			name: "Is empty",
 			args: args{
-				extractFromHTMLConfiguration: ExtractFromHTMLConfiguration{},
+				extractFromHTMLConfiguration: ExtractFromTokenConfig{},
 			},
 			want: true,
 		},
 		{
 			name: "Is not empty",
 			args: args{
-				extractFromHTMLConfiguration: ExtractFromHTMLConfiguration{
+				extractFromHTMLConfiguration: ExtractFromTokenConfig{
 					Attribute: "hi",
 				},
 			},
@@ -343,9 +343,9 @@ func Test_isEmptyScrapeURLConfiguration(t *testing.T) {
 			args: args{
 				s: []ScrapeURLConfig{
 					{
-						Name:                         "",
-						ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{},
-						FormatURLConfiguration:       FormatURLConfiguration{},
+						Name:                   "",
+						ExtractFromTokenConfig: ExtractFromTokenConfig{},
+						FormatURLConfig:        FormatURLConfig{},
 					},
 				},
 			},

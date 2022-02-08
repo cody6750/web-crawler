@@ -4,7 +4,7 @@ var (
 	defaultCrawlDelay            int    = 5
 	defaultMaxDepth              int    = 1
 	defaultMaxGoRoutines         int    = 10000
-	defaultMaxVisitedUrls        int    = 500
+	defaultMaxVisitedUrls        int    = 10
 	defeaultMaxItemsFound        int    = 5000
 	defaultWebScraperWorkercount int    = 5
 	defaultHeaderKey             string = "User-Agent"

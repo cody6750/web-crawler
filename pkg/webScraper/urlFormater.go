@@ -4,18 +4,33 @@ import (
 	"strings"
 )
 
-func formatURL(url string, formatURLConfig FormatURLConfiguration) string {
-	if strings.HasPrefix(url, formatURLConfig.PrefixExist) && strings.HasSuffix(url, formatURLConfig.SuffixExist) && strings.Contains(url, formatURLConfig.ReplaceOldString) {
-		if formatURLConfig.ReplaceOldString != "" && formatURLConfig.ReplaceNewString != "" {
-			url = strings.ReplaceAll(url, formatURLConfig.ReplaceOldString, formatURLConfig.ReplaceNewString)
+//FormatURLConfiguration ...
+type FormatURLConfiguration struct {
+	SuffixExist      string `json:"SuffixExist"`
+	SuffixToAdd      string `json:"SuffixToAdd"`
+	SuffixToRemove   string `json:"SuffixToRemove"`
+	PrefixToAdd      string `json:"PrefixToAdd"`
+	PrefixExist      string `json:"PrefixExist"`
+	PrefixToRemove   string `json:"PrefixToRemove"`
+	ReplaceOldString string `json:"ReplaceOldString"`
+	ReplaceNewString string `json:"ReplaceNewString"`
+}
+
+func formatURL(url string, config FormatURLConfiguration) string {
+	if strings.HasPrefix(url, config.PrefixExist) && strings.HasSuffix(url, config.SuffixExist) && strings.Contains(url, config.ReplaceOldString) {
+		if config.ReplaceOldString != "" && config.ReplaceNewString != "" {
+			url = strings.ReplaceAll(url, config.ReplaceOldString, config.ReplaceNewString)
 		}
-		url = strings.TrimPrefix(url, formatURLConfig.PrefixToRemove)
-		url = strings.TrimSuffix(url, formatURLConfig.SuffixToRemove)
-		if formatURLConfig.PrefixToAdd != "" {
-			url = formatURLConfig.PrefixToAdd + url
+
+		url = strings.TrimPrefix(url, config.PrefixToRemove)
+		url = strings.TrimSuffix(url, config.SuffixToRemove)
+
+		if config.PrefixToAdd != "" {
+			url = config.PrefixToAdd + url
 		}
-		if formatURLConfig.SuffixToAdd != "" {
-			url = url + formatURLConfig.SuffixToAdd
+
+		if config.SuffixToAdd != "" {
+			url = url + config.SuffixToAdd
 		}
 	} else {
 		return ""

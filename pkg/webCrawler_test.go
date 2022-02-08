@@ -10,8 +10,8 @@ func TestWebCrawler_Crawl(t *testing.T) {
 	crawl := NewCrawler()
 	type args struct {
 		url                     string
-		ScrapeURLConfiguration  []webscraper.ScrapeURLConfiguration
-		ScrapeItemConfiguration []webscraper.ScrapeItemConfiguration
+		ScrapeURLConfiguration  []webscraper.ScrapeURLConfig
+		ScrapeItemConfiguration []webscraper.ScrapeItemConfig
 	}
 	tests := []struct {
 		name string
@@ -24,7 +24,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 	args: args{
 		// 		// url: "https://www.bestbuy.com/site/searchpage.jsp?id=pcat17071&qp=gpusv_facet%3DGraphics%20Processing%20Unit%20(GPU)~NVIDIA%20GeForce%20RTX%203080&st=rtx+3080",
 		// 		url: "https://www.bestbuy.com/site/promo/pc-gaming-deals?qp=category_facet%3DComputer%20Cards%20%26%20Components~abcat0507000&sp=-bestsellingsort%20skuidsaas",
-		// 		ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
+		// 		ScrapeURLConfiguration: []webscraper.ScrapeURLConfig{
 		// 			{
 		// 				// ExtractFromHTMLConfiguration: webscraper.ExtractFromHTMLConfiguration{
 		// 				// 	Attribute:      "class",
@@ -37,7 +37,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 		// 				},
 		// 			},
 		// 		},
-		// 		ScrapeItemConfiguration: []webscraper.ScrapeItemConfiguration{
+		// 		ScrapeItemConfiguration: []webscraper.ScrapeItemConfig{
 		// 			{
 		// 				ItemName: "Graphics Cards",
 		// 				ItemToGet: webscraper.ExtractFromHTMLConfiguration{
@@ -84,7 +84,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 			w:    crawl,
 			args: args{
 				url: "https://www.newegg.com/p/pl?d=RTX+3080",
-				ScrapeURLConfiguration: []webscraper.ScrapeURLConfiguration{
+				ScrapeURLConfiguration: []webscraper.ScrapeURLConfig{
 					{
 						FormatURLConfiguration: webscraper.FormatURLConfiguration{
 							PrefixExist:    "////",
@@ -113,7 +113,7 @@ func TestWebCrawler_Crawl(t *testing.T) {
 						},
 					},
 				},
-				ScrapeItemConfiguration: []webscraper.ScrapeItemConfiguration{
+				ScrapeItemConfiguration: []webscraper.ScrapeItemConfig{
 					{
 						ItemName: "Graphics Cards",
 						ItemToGet: webscraper.ExtractFromHTMLConfiguration{

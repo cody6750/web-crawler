@@ -25,9 +25,9 @@ type Item struct {
 
 //Payload ...
 type Payload struct {
-	ScrapeItemConfiguration []webscraper.ScrapeItemConfiguration `json:"ScrapeItemConfiguration"`
-	ScrapeURLConfiguration  []webscraper.ScrapeURLConfiguration  `json:"ScrapeURLConfiguration"`
-	RootURL                 string                               `json:"RootURL"`
+	ScrapeItemConfiguration []webscraper.ScrapeItemConfig `json:"ScrapeItemConfiguration"`
+	ScrapeURLConfiguration  []webscraper.ScrapeURLConfig  `json:"ScrapeURLConfiguration"`
+	RootURL                 string                        `json:"RootURL"`
 }
 
 // Items ...
@@ -44,7 +44,7 @@ func DecodeToPayload(r *http.Request) (*Payload, error) {
 }
 
 // GetItem ...
-func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) ([]*webscraper.ScrapeResposne, error) {
+func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeItemConfig, ScrapeURLConfiguration ...webscraper.ScrapeURLConfig) ([]*webscraper.Response, error) {
 	crawler := webcrawler.NewCrawler()
 	crawler.Logger = logger
 	response, err := crawler.Crawl(url, itemsToget, ScrapeURLConfiguration...)
@@ -56,7 +56,7 @@ func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeIt
 }
 
 // ToJSON ...
-func ToJSON(w io.Writer, r []*webscraper.ScrapeResposne) error {
+func ToJSON(w io.Writer, r []*webscraper.Response) error {
 	e := json.NewEncoder(w)
 	e.SetIndent("", "    ")
 	return e.Encode(r)

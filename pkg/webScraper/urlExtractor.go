@@ -1,7 +1,7 @@
 package webcrawler
 
 import (
-	"log"
+	"fmt"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -11,19 +11,24 @@ const (
 	hrefAttribute string = "href"
 )
 
+//ScrapeURLConfig ...
+type ScrapeURLConfig struct {
+	Name                         string                       `json:"Name"`
+	ExtractFromHTMLConfiguration ExtractFromHTMLConfiguration `json:"ExtractFromHTMLConfiguration"`
+	FormatURLConfiguration       FormatURLConfiguration       `json:"FormatURLConfiguration"`
+}
+
 //ExtractURL ...
 func ExtractURL(t html.Token, URLsToCheck map[string]bool) (string, error) {
-
 	ExtractedURL, _ := extractURLFromHTML(t)
 	if ExtractedURL != "" && !isDuplicateURL(ExtractedURL, URLsToCheck) {
-		log.Default().Printf("Extracted url: %v", ExtractedURL)
 		return ExtractedURL, nil
 	}
 	return ExtractedURL, nil
 }
 
-//ExtractURLWithScrapURLConfiguration ...
-func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bool, TagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfiguration) (string, error) {
+//ExtractURLWithScrapURLConfig ...
+func ExtractURLWithScrapURLConfig(t html.Token, URLsToCheck map[string]bool, TagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfig) (string, error) {
 	var ExtractedURL string
 	for _, scrapeURLConfiguration := range scrapeURLConfiguration {
 		if !IsEmpty(scrapeURLConfiguration.ExtractFromHTMLConfiguration) {
@@ -52,16 +57,19 @@ func ExtractURLWithScrapURLConfiguration(t html.Token, URLsToCheck map[string]bo
 	return "", nil
 }
 func extractURLFromHTMLUsingConfiguration(token html.Token, urlConfig ExtractFromHTMLConfiguration) (string, error) {
-	HTTPAttributeValueFromToken, _ := getHTTPAttributeValueFromToken(token, urlConfig.Attribute)
-	if strings.Contains(HTTPAttributeValueFromToken, urlConfig.AttributeValue) {
-		hrefValue, _ := getHTTPAttributeValueFromToken(token, hrefAttribute)
+	value, err := extractAttributeValue(token, urlConfig.Attribute)
+	if err != nil {
+		return value, err
+	}
+	if strings.Contains(value, urlConfig.AttributeValue) {
+		hrefValue, _ := extractAttributeValue(token, hrefAttribute)
 		return hrefValue, nil
 	}
-	return "", errExtractURLFromHTMLUsingConfiguration
+	return value, fmt.Errorf("unable to extract url from token using the url configuration, %v retrived", value)
 }
 
 func extractURLFromHTML(token html.Token) (string, error) {
-	hrefValue, error := getHTTPAttributeValueFromToken(token, hrefAttribute)
+	hrefValue, error := extractAttributeValue(token, hrefAttribute)
 	if error != nil {
 		return "", errExtractURLFromHTML
 	}

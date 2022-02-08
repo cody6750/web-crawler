@@ -15,7 +15,7 @@ type ExtractFromHTMLConfiguration struct {
 	SkipToken      int    `json:"SkipToken"`
 }
 
-func getHTTPAttributeValueFromToken(token html.Token, attributeToGet string) (attributeValue string, err error) {
+func extractAttributeValue(token html.Token, attributeToGet string) (attributeValue string, err error) {
 	for _, a := range token.Attr {
 		if a.Key == attributeToGet {
 			attributeValue = a.Val

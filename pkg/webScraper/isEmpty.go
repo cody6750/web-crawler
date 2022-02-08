@@ -15,9 +15,9 @@ func IsEmpty(i interface{}) bool {
 		return i.Data == "" && len(i.Attr) == 0
 	case FormatURLConfiguration:
 		return reflect.DeepEqual(i, FormatURLConfiguration{})
-	case []ScrapeItemConfiguration:
+	case []ScrapeItemConfig:
 		return len(i) == 0
-	case []ScrapeURLConfiguration:
+	case []ScrapeURLConfig:
 		return len(i) == 0
 	case map[string]ExtractFromHTMLConfiguration:
 		return len(i) == 0

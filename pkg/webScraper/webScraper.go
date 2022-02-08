@@ -2,9 +2,6 @@ package webcrawler
 
 import (
 	"errors"
-	"fmt"
-	"log"
-	"os"
 	"strings"
 	"sync"
 
@@ -13,19 +10,9 @@ import (
 )
 
 var (
-	errFormatURL                            error = errors.New("")
-	errEmptyParameter                       error = errors.New("")
-	errExtractURLFromHTMLUsingConfiguration error = errors.New("")
-	errExtractURLFromHTML                   error = errors.New("")
-	err                                     error
+	errExtractURLFromHTML error = errors.New("")
+	err                   error
 )
-
-//ScrapeResposne ...
-type ScrapeResposne struct {
-	RootURL       string
-	ExtractedItem []*Item
-	ExtractedURLs []*URL
-}
 
 //WebScraper ...
 type WebScraper struct {
@@ -39,23 +26,11 @@ type WebScraper struct {
 	HeaderValue         string
 }
 
-//ScrapeURLConfiguration ...
-type ScrapeURLConfiguration struct {
-	Name                         string                       `json:"Name"`
-	ExtractFromHTMLConfiguration ExtractFromHTMLConfiguration `json:"ExtractFromHTMLConfiguration"`
-	FormatURLConfiguration       FormatURLConfiguration       `json:"FormatURLConfiguration"`
-}
-
-//FormatURLConfiguration ...
-type FormatURLConfiguration struct {
-	SuffixExist      string `json:"SuffixExist"`
-	SuffixToAdd      string `json:"SuffixToAdd"`
-	SuffixToRemove   string `json:"SuffixToRemove"`
-	PrefixToAdd      string `json:"PrefixToAdd"`
-	PrefixExist      string `json:"PrefixExist"`
-	PrefixToRemove   string `json:"PrefixToRemove"`
-	ReplaceOldString string `json:"ReplaceOldString"`
-	ReplaceNewString string `json:"ReplaceNewString"`
+//Response ...
+type Response struct {
+	RootURL       string
+	ExtractedItem []*Item
+	ExtractedURLs []*URL
 }
 
 //New ..
@@ -66,29 +41,22 @@ func New() *WebScraper {
 }
 
 //Scrape ..
-func (ws *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfiguration, scrapeURLConfiguration ...ScrapeURLConfiguration) (*ScrapeResposne, error) {
+func (ws *WebScraper) Scrape(url *URL, itemsToGet []ScrapeItemConfig, urlsToGet ...ScrapeURLConfig) (*Response, error) {
 	var (
 		extractedURL       string
 		extractedURLObject *URL
 		ExtractedURLs      []*URL
 		ExtractedItems     []*Item
-		urlTagsToCheck     map[string]bool
 		itemTagsToCheck    map[string]bool
-		URLsToCheck        map[string]bool
+		urlTagsToCheck     map[string]bool
+		URLsToCheck        map[string]bool = make(map[string]bool)
 	)
-	URLsToCheck = make(map[string]bool)
 	response := ConnectToWebsite(url.CurrentURL, ws.HeaderKey, ws.HeaderValue).Body
-	if !IsEmpty(scrapeURLConfiguration) {
-		urlTagsToCheck, err = generateURLTagsToCheckMap(urlTagsToCheck, scrapeURLConfiguration)
-		if err != nil {
-			return nil, errors.New("failed to generate url tags")
-		}
+	if !IsEmpty(urlsToGet) {
+		urlTagsToCheck = ws.generateTagsToCheckMap(urlsToGet)
 	}
-	if !IsEmpty(scrapeItemConfiguration) {
-		itemTagsToCheck, err = generateItemTagsToCheckMap(itemTagsToCheck, scrapeItemConfiguration)
-		if err != nil {
-			return nil, errors.New("failed to generate item tags")
-		}
+	if !IsEmpty(itemsToGet) {
+		itemTagsToCheck = ws.generateTagsToCheckMap(itemsToGet)
 	}
 	defer response.Close()
 	// Parse HTML response by turning it into Tokens
@@ -101,14 +69,14 @@ func (ws *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfi
 		switch {
 		case tt == html.StartTagToken:
 			t := z.Token()
-			if IsEmpty(scrapeURLConfiguration) {
+			if IsEmpty(urlsToGet) {
 				//TODO: Replace ExtractedURL with a channel
 				extractedURL, err = ExtractURL(t, URLsToCheck)
 				if err != nil {
 					continue
 				}
 			} else {
-				extractedURL, err = ExtractURLWithScrapURLConfiguration(t, URLsToCheck, urlTagsToCheck, scrapeURLConfiguration)
+				extractedURL, err = ExtractURLWithScrapURLConfig(t, URLsToCheck, urlTagsToCheck, urlsToGet)
 				if err != nil {
 					continue
 				}
@@ -121,72 +89,67 @@ func (ws *WebScraper) Scrape(url *URL, scrapeItemConfiguration []ScrapeItemConfi
 				}
 			}
 
-			if !IsEmpty(scrapeItemConfiguration) {
-				extractedItem, err := ExtractItemWithScrapItemConfiguration(t, z, itemTagsToCheck, scrapeItemConfiguration)
+			if !IsEmpty(itemsToGet) {
+				extractedItem, err := ExtractItemWithScrapItemConfig(t, z, itemTagsToCheck, itemsToGet)
 				if err != nil {
 					continue
 				}
 				extractedItem.URL = url
-				// extractedItem.printJSON()
+				//extractedItem.printJSON()
 				ExtractedItems = append(ExtractedItems, &extractedItem)
 			}
 
 			// This is our break statement
 		case tt == html.ErrorToken:
-			return &ScrapeResposne{RootURL: ws.RootURL, ExtractedURLs: ExtractedURLs, ExtractedItem: ExtractedItems}, nil
+			return &Response{RootURL: ws.RootURL, ExtractedURLs: ExtractedURLs, ExtractedItem: ExtractedItems}, nil
 		}
 	}
 }
 
-func WriteToFile(body string) {
-	f, err := os.Create("data.html")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	_, err2 := f.WriteString(body)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-
-	fmt.Println("done")
-}
-
-func generateItemTagsToCheckMap(itemTagsToCheck map[string]bool, scrapeItemConfiguration []ScrapeItemConfiguration) (map[string]bool, error) {
-	if IsEmpty(scrapeItemConfiguration) {
-		return nil, errors.New("Item is empty")
-	}
-	// If item parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
-	for _, item := range scrapeItemConfiguration {
-		if !IsEmpty(item.ItemToGet) {
-			if len(itemTagsToCheck) == 0 {
-				itemTagsToCheck = make(map[string]bool)
+// func generateItemTagsToCheckMap(scrapeItemConfiguration []ScrapeItemConfiguration) map[string]bool {
+// 	// If item parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
+// 	var itemTagsToCheck = make(map[string]bool)
+// 	for _, item := range scrapeItemConfiguration {
+// 		if !IsEmpty(item.ItemToGet) {
+// 			itemTagsToCheck[item.ItemToGet.Tag] = true
+// 		}
+// 	}
+// 	return itemTagsToCheck
+// }
+func (ws *WebScraper) generateTagsToCheckMap(t interface{}) map[string]bool {
+	switch t := t.(type) {
+	case []ScrapeURLConfig:
+		var urlTagsToCheck = make(map[string]bool)
+		for _, ScrapeURLConfig := range t {
+			if !IsEmpty(ScrapeURLConfig.ExtractFromHTMLConfiguration) {
+				urlTagsToCheck[ScrapeURLConfig.ExtractFromHTMLConfiguration.Tag] = true
 			}
-			itemTagsToCheck[item.ItemToGet.Tag] = true
 		}
+		return urlTagsToCheck
+	case []ScrapeItemConfig:
+		var itemTagsToCheck = make(map[string]bool)
+		for _, item := range t {
+			if !IsEmpty(item.ItemToGet) {
+				itemTagsToCheck[item.ItemToGet.Tag] = true
+			}
+		}
+		return itemTagsToCheck
+	default:
+		ws.Logger.WithField("Type", t).Warn("Unable to generate tags to check map")
 	}
-	return itemTagsToCheck, nil
+	return map[string]bool{}
 }
 
-func generateURLTagsToCheckMap(urlTagsToCheck map[string]bool, scrapeURLConfiguration []ScrapeURLConfiguration) (map[string]bool, error) {
-	if IsEmpty(scrapeURLConfiguration) {
-		return nil, errors.New("scrap configuration is empty")
-	}
-	// If htmlURLConfiguration parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
-	for _, scrapeURLConfiguration := range scrapeURLConfiguration {
-		if !IsEmpty(scrapeURLConfiguration.ExtractFromHTMLConfiguration) {
-			if len(urlTagsToCheck) == 0 {
-				urlTagsToCheck = make(map[string]bool)
-			}
-			urlTagsToCheck[scrapeURLConfiguration.ExtractFromHTMLConfiguration.Tag] = true
-		}
-	}
-	return urlTagsToCheck, nil
-}
+// func generateURLTagsToCheckMap(ScrapeURLConfig []ScrapeURLConfig) map[string]bool {
+// 	// If htmlURLConfiguration parameter is provided, create a map filled with tags that will be used to determine if processing is needed. To increase performance
+// 	var urlTagsToCheck = make(map[string]bool)
+// 	for _, ScrapeURLConfig := range ScrapeURLConfig {
+// 		if !IsEmpty(ScrapeURLConfig.ExtractFromHTMLConfiguration) {
+// 			urlTagsToCheck[ScrapeURLConfig.ExtractFromHTMLConfiguration.Tag] = true
+// 		}
+// 	}
+// 	return urlTagsToCheck
+// }
 
 func (ws *WebScraper) isBlackListedURLPath(url string) bool {
 	var urlToCheck string

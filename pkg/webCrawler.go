@@ -27,9 +27,9 @@ type WebCrawler struct {
 	pendingUrlsToCrawlCount   chan int
 	pendingUrlsToCrawl        chan *webscraper.URL
 	urlsToCrawl               chan *webscraper.URL
-	collectWebScraperResponse chan *webscraper.ScrapeResposne
+	collectWebScraperResponse chan *webscraper.Response
 	errs                      chan error
-	webScraperResponses       []*webscraper.ScrapeResposne
+	webScraperResponses       []*webscraper.Response
 	stop                      chan struct{}
 	metrics                   Metrics
 	visited                   map[string]struct{}
@@ -59,7 +59,7 @@ func NewWithOptions(options *options.Options) *WebCrawler {
 func (wc *WebCrawler) init(rootURL string) error {
 	wc.pendingUrlsToCrawlCount = make(chan int)
 	wc.pendingUrlsToCrawl = make(chan *webscraper.URL)
-	wc.collectWebScraperResponse = make(chan *webscraper.ScrapeResposne)
+	wc.collectWebScraperResponse = make(chan *webscraper.Response)
 	wc.errs = make(chan error)
 	wc.urlsToCrawl = make(chan *webscraper.URL)
 	wc.stop = make(chan struct{}, 30)
@@ -77,18 +77,16 @@ func (wc *WebCrawler) init(rootURL string) error {
 }
 
 //Crawl ...
-func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfiguration, urlsToGet ...webscraper.ScrapeURLConfiguration) ([]*webscraper.ScrapeResposne, error) {
+func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) ([]*webscraper.Response, error) {
 	wc.Logger.WithField("url", url).Info("Starting to crawl url")
 	wgDone := make(chan bool)
 	err := wc.init(url)
 	if err != nil {
-		wc.Logger.WithError(err).Errorf("Cannot initialize crawler")
-		return nil, err
+		return nil, fmt.Errorf("cannot initialize crawler")
 	}
 
 	if wc.Options.MaxDepth < 0 {
-		wc.Logger.Errorf("Max depth is cannot be lower then 0. Current max depth: %v", wc.Options.MaxDepth)
-		return nil, fmt.Errorf("max depth cannot be below 0, exiting")
+		return nil, fmt.Errorf("max depth is cannot be lower then 0. Current max depth: %v", wc.Options.MaxDepth)
 	}
 
 	go func() {
@@ -129,14 +127,13 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		// carry on
 		break
 	case err := <-wc.errs:
-		wc.Logger.WithError(err).Errorf("Failed to crawl url")
 		return wc.webScraperResponses, err
 	}
 	wc.Logger.WithField("url", url).Info("Finished crawling url")
 	return wc.webScraperResponses, nil
 }
 
-func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfiguration, ScrapeURLConfiguration ...webscraper.ScrapeURLConfiguration) (*webscraper.WebScraper, error) {
+func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) (*webscraper.WebScraper, error) {
 	wg := new(sync.WaitGroup)
 	ws := &webscraper.WebScraper{
 		Logger:              wc.Logger,
@@ -174,7 +171,7 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 			ws.WaitGroup.Add(1)
 			go func() {
 				defer ws.WaitGroup.Done()
-				scrapeResponse, _ := ws.Scrape(url, itemsToget, ScrapeURLConfiguration...)
+				scrapeResponse, _ := ws.Scrape(url, itemsToget, urlsToGet...)
 				wc.incrementMetrics(&Metrics{urlsFound: len(scrapeResponse.ExtractedURLs), urlsVisited: 1, itemsFound: len(scrapeResponse.ExtractedItem)})
 				wc.Logger.Infof("Go routine:%v | Crawling link: %v | Current depth: %v | Url Visited: %v | Url Found : %v | Duplicate Url found: %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, wc.metrics.urlsVisited, wc.metrics.urlsFound, wc.metrics.duplicatedUrlsFound, wc.metrics.itemsFound)
 				wc.processScrapedUrls(scrapeResponse.ExtractedURLs)
@@ -201,9 +198,11 @@ func (wc *WebCrawler) incrementMetrics(m *Metrics) *Metrics {
 	if m.urlsVisited != 0 {
 		wc.metrics.urlsVisited += m.urlsVisited
 	}
+
 	if m.itemsFound != 0 {
 		wc.metrics.itemsFound += m.itemsFound
 	}
+
 	if m.duplicatedUrlsFound != 0 {
 		wc.metrics.duplicatedUrlsFound += m.duplicatedUrlsFound
 	}
@@ -216,7 +215,7 @@ func (wc *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 		return
 	}
 	if scrapedUrls[0].CurrentDepth > wc.Options.MaxDepth {
-		//contiue
+		//continue
 	} else {
 		for _, url := range scrapedUrls {
 			wc.pendingUrlsToCrawl <- url
@@ -239,11 +238,13 @@ func (wc *WebCrawler) processCrawledLinks() {
 			wc.Logger.Debug("Channel is closed, no longer processing crawled links")
 			return
 		}
+
 		if url.CurrentURL == "" {
 			wc.pendingUrlsToCrawlCount <- -1
 			wc.incrementMetrics(&Metrics{duplicatedUrlsFound: 1})
 			continue
 		}
+
 		_, visited := wc.visited[url.CurrentURL]
 		if !visited {
 			wc.visited[url.CurrentURL] = struct{}{}
@@ -272,15 +273,16 @@ func (wc *WebCrawler) monitorCrawling() {
 }
 
 func (wc *WebCrawler) shutDownWebScraper(s *webscraper.WebScraper) {
-	wc.wg.Add(1)
 	defer wc.wg.Done()
 	s.Stop <- struct{}{}
 }
 
+// StopWebScraper ...
 func (wc *WebCrawler) StopWebScraper(scraperNumbers []int) {
 	for _, scraperNumber := range scraperNumbers {
 		if scraper, scraperExist := wc.webScrapers[scraperNumber]; scraperExist {
 			wc.Logger.WithField("Number", scraperNumber).Debug("Stop webscraper")
+			wc.wg.Add(1)
 			go wc.shutDownWebScraper(scraper)
 		}
 	}
@@ -290,6 +292,7 @@ func (wc *WebCrawler) StopWebScraper(scraperNumbers []int) {
 func (wc *WebCrawler) stopAllWebScrapers() {
 	wc.Logger.Debug("Stoping all webscrapers")
 	for _, scraper := range wc.webScrapers {
+		wc.wg.Add(1)
 		go wc.shutDownWebScraper(scraper)
 	}
 	wc.wg.Wait()
@@ -316,6 +319,7 @@ func (wc *WebCrawler) livenessCheck() error {
 			wc.stopAllWebScrapers()
 			return fmt.Errorf("failed liveness check, number of go routines: %v is below threshold: %v", numGoRoutine, wc.Options.WebScraperWorkerCount*2)
 		}
+
 		if checkCounter {
 			go func() {
 				checkCounter = false
@@ -358,6 +362,7 @@ func (wc *WebCrawler) initRobotsTxtRestrictions(url string) error {
 		} else if strings.Contains(rules, "User-agent: ") && addRule {
 			break
 		}
+
 		if addRule {
 			if strings.Contains(rules, "Disallow: ") {
 				wc.Options.BlacklistedURLPaths[strings.ReplaceAll(strings.Split(rules, " ")[1], "*", "")] = struct{}{}

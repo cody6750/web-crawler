@@ -54,7 +54,7 @@ func Test_extractURLFromHTMLUsingConfiguration(t *testing.T) {
 				},
 			},
 			wantAttributeValue: "",
-			wantErr:            errExtractURLFromHTMLUsingConfiguration,
+			wantErr:            nil,
 		},
 	}
 
@@ -174,7 +174,7 @@ func Test_getHTTPAttributeValueFromToken(t *testing.T) {
 	for _, tt := range tests {
 		log.Printf("[TEST]: %v has started\n", tt.name)
 		t.Run(tt.name, func(t *testing.T) {
-			gotAttributeValue, err := getHTTPAttributeValueFromToken(tt.args.token, tt.args.attributeToGet)
+			gotAttributeValue, err := extractAttributeValue(tt.args.token, tt.args.attributeToGet)
 			if gotAttributeValue != tt.wantAttributeValue {
 				log.Printf("[TEST]: %v has failed\n\n", tt.name)
 				t.Errorf("getHTTPAttributeValueFromToken() = %v, want %v", gotAttributeValue, tt.wantAttributeValue)
@@ -231,7 +231,7 @@ func Test_formatURL(t *testing.T) {
 				},
 			},
 			want:    "",
-			wantErr: errFormatURL,
+			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
@@ -331,7 +331,7 @@ func Test_isEmptyExtractFromHTMLConfiguration(t *testing.T) {
 
 func Test_isEmptyScrapeURLConfiguration(t *testing.T) {
 	type args struct {
-		s []ScrapeURLConfiguration
+		s []ScrapeURLConfig
 	}
 	tests := []struct {
 		name string
@@ -341,7 +341,7 @@ func Test_isEmptyScrapeURLConfiguration(t *testing.T) {
 		{
 			name: "Not empty scrap configuration slice",
 			args: args{
-				s: []ScrapeURLConfiguration{
+				s: []ScrapeURLConfig{
 					{
 						Name:                         "",
 						ExtractFromHTMLConfiguration: ExtractFromHTMLConfiguration{},

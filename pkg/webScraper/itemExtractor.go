@@ -2,6 +2,7 @@ package webcrawler
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -76,29 +77,44 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 				for itemDetailName, itemDetails := range scrapeItemConfig.ItemDetails {
 					HTTPAttributeValueFromToken, _ := extractAttributeValue(currentToken, itemDetails.Attribute)
 					if (itemDetails.Tag == currentToken.Data && itemDetails.AttributeValue == HTTPAttributeValueFromToken) || (itemDetails.Tag == currentToken.Data && itemDetails.Attribute == "" && itemDetails.AttributeValue == "") {
-						if _, exist := item.ItemDetails[itemDetailName]; !exist {
-							if itemDetails.AttributeToGet != "" {
-								HTTPAttributeValueFromToken, _ = extractAttributeValue(currentToken, itemDetails.AttributeToGet)
-								item.ItemDetails[itemDetailName] = HTTPAttributeValueFromToken
-							} else {
-								if itemDetails.SkipToken != 0 {
-									for itemDetails.SkipToken >= 0 {
-										tokenType = z.Next()
-										if tokenType == html.TextToken {
-											itemDetails.SkipToken--
-											continue
-										}
-									}
-								} else {
-									for tokenType != html.TextToken {
-										tokenType = z.Next()
+						if _, exist := item.ItemDetails[itemDetailName]; exist {
+							return item, nil
+						}
+						if itemDetails.AttributeToGet != "" {
+							HTTPAttributeValueFromToken, _ = extractAttributeValue(currentToken, itemDetails.AttributeToGet)
+							if !IsEmpty(itemDetails.FormatAttributeConfiguration) {
+								HTTPAttributeValueFromToken = formatURL(HTTPAttributeValueFromToken, itemDetails.FormatAttributeConfiguration)
+							}
+							item.ItemDetails[itemDetailName] = HTTPAttributeValueFromToken
+						} else {
+							if itemDetails.SkipToken != 0 {
+								for itemDetails.SkipToken >= 0 {
+									tokenType = z.Next()
+									if tokenType == html.TextToken {
+										itemDetails.SkipToken--
+										continue
 									}
 								}
-								currentToken = z.Token()
-								str := currentToken.String()
-								item.ItemDetails[itemDetailName] = str
+							} else {
+								for tokenType != html.TextToken {
+									tokenType = z.Next()
+								}
 							}
+							currentToken = z.Token()
+							str := currentToken.String()
+							if !IsEmpty(itemDetails.FormatAttributeConfiguration) {
+								HTTPAttributeValueFromToken = formatURL(str, itemDetails.FormatAttributeConfiguration)
+							}
+
+							if !IsEmpty(itemDetails.ItemFilterConfiguration) {
+								if !Validate(str, &itemDetails.ItemFilterConfiguration) {
+									return Item{}, nil
+								}
+								log.Print("Valid")
+							}
+							item.ItemDetails[itemDetailName] = str
 						}
+
 					}
 				}
 			}
@@ -107,6 +123,7 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 		case tokenType == html.ErrorToken:
 			tagStack.pop()
 			return item, nil
+		default:
 		}
 	}
 	return item, nil

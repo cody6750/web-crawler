@@ -2,7 +2,7 @@ package options
 
 var (
 	defaultCrawlDelay            int    = 5
-	defaultMaxDepth              int    = 1
+	defaultMaxDepth              int    = 0
 	defaultMaxGoRoutines         int    = 10000
 	defaultMaxVisitedUrls        int    = 10
 	defeaultMaxItemsFound        int    = 5000

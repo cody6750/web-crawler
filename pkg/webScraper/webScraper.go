@@ -49,6 +49,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 		urlsToCheck     map[string]bool = make(map[string]bool)
 	)
 	response := ConnectToWebsite(u.CurrentURL, ws.HeaderKey, ws.HeaderValue).Body
+
 	if !IsEmpty(urlsToGet) {
 		urlTagsToCheck = ws.generateTagsToCheckMap(urlsToGet)
 	}
@@ -66,6 +67,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 		switch {
 		case tt == html.StartTagToken:
 			t := z.Token()
+
 			if IsEmpty(urlsToGet) {
 				//TODO: Replace ExtractedURL with a channel
 				url = ExtractURL(t, urlsToCheck)
@@ -73,7 +75,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 				url, _ = ExtractURLWithScrapURLConfig(t, urlsToCheck, urlTagsToCheck, urlsToGet)
 			}
 
-			if url != "" && !IsEmpty(ws.BlackListedURLPaths) {
+			if url != "" {
 				if isBlackListedURLPath := ws.isBlackListedURLPath(url); !isBlackListedURLPath {
 					urls = append(urls, &URL{CurrentURL: url, ParentURL: u.CurrentURL, RootURL: ws.RootURL, CurrentDepth: u.CurrentDepth + 1, MaxDepth: u.MaxDepth})
 				}
@@ -81,7 +83,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 
 			if !IsEmpty(itemsToGet) {
 				item, err := ExtractItemWithScrapItemConfig(t, z, itemTagsToCheck, itemsToGet)
-				if err != nil {
+				if err != nil || IsEmpty(item) {
 					continue
 				}
 				item.URL = u

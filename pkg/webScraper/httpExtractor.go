@@ -8,11 +8,13 @@ import (
 
 //ExtractFromTokenConfig ...
 type ExtractFromTokenConfig struct {
-	Tag            string `json:"Tag"`
-	Attribute      string `json:"Attribute"`
-	AttributeValue string `json:"AttributeValue"`
-	AttributeToGet string `json:"AttributeToGet"`
-	SkipToken      int    `json:"SkipToken"`
+	ItemFilterConfiguration      FilterConfiguration `json:"FilterConfiguration"`
+	FormatAttributeConfiguration FormatURLConfig     `json:"FormatAttributeConfiguration"`
+	SkipToken                    int                 `json:"SkipToken"`
+	Tag                          string              `json:"Tag"`
+	Attribute                    string              `json:"Attribute"`
+	AttributeValue               string              `json:"AttributeValue"`
+	AttributeToGet               string              `json:"AttributeToGet"`
 }
 
 func extractAttributeValue(token html.Token, attributeToGet string) (attributeValue string, err error) {

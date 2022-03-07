@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/cody6750/web-crawler/web/data"
@@ -19,6 +20,7 @@ func (c *Crawler) getItem(rw http.ResponseWriter, r *http.Request) error {
 		c.logger.WithError(err).Error("Unable to call GetItem from the crawler handler")
 		return err
 	}
+	log.Print(products)
 	err = data.ToJSON(rw, products)
 	if err != nil {
 		c.logger.WithError(err).Error("Unable to write getItem using JSON from the crawler handler")

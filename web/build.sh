@@ -32,14 +32,16 @@ pull() {
   send_command "docker pull 732407346024.dkr.ecr.us-east-1.amazonaws.com/webcrawler:latest"
   send_command "docker image tag 732407346024.dkr.ecr.us-east-1.amazonaws.com/webcrawler:latest webcrawler:latest"
   echo "Successfully pulled docker image from ECR to EC2 Instance"
-}
+} 
 
 run() {
-  send_command "docker run -d -p 9090:9090 --name webcrawler webcrawler"
+  send_command "docker network ls | grep discord || docker network create discord"
+  send_command "docker run -d -p 9090:9090 --network=discord --name webcrawler webcrawler"
 }
 
 stop() {
   send_command "docker stop webcrawler"
+  send_command "docker container prune -f"
 }
 
 init_ec2(){
@@ -53,6 +55,7 @@ case $1 in
     build
     push
     pull
+    stop
     run
     ;;
   init)

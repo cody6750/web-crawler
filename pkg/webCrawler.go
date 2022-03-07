@@ -15,10 +15,11 @@ import (
 
 // Metrics ...
 type Metrics struct {
-	duplicatedUrlsFound int
-	urlsFound           int
-	urlsVisited         int
-	itemsFound          int
+	URL                 string
+	DuplicatedUrlsFound int
+	UrlsFound           int
+	UrlsVisited         int
+	ItemsFound          int
 }
 
 //WebCrawler ...
@@ -39,6 +40,11 @@ type WebCrawler struct {
 	metricsLock               sync.Mutex
 	Logger                    *logrus.Logger
 	Options                   *options.Options
+}
+
+type Response struct {
+	WebScraperResponses []*webscraper.Response
+	Metrics             *Metrics
 }
 
 //NewCrawler ...
@@ -70,14 +76,14 @@ func (wc *WebCrawler) init(rootURL string) error {
 
 	err := wc.initRobotsTxtRestrictions(rootURL)
 	if err != nil {
-		return err
+		wc.Logger.WithField("URL: ", rootURL).Info("robots.txt does not exist for website")
 	}
 	return nil
 
 }
 
 //Crawl ...
-func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) ([]*webscraper.Response, error) {
+func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) (*Response, error) {
 	wc.Logger.WithField("url", url).Info("Starting to crawl url")
 	wgDone := make(chan bool)
 	err := wc.init(url)
@@ -127,10 +133,10 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		// carry on
 		break
 	case err := <-wc.errs:
-		return wc.webScraperResponses, err
+		return &Response{WebScraperResponses: wc.webScraperResponses, Metrics: &wc.metrics}, err
 	}
 	wc.Logger.WithField("url", url).Info("Finished crawling url")
-	return wc.webScraperResponses, nil
+	return &Response{WebScraperResponses: wc.webScraperResponses, Metrics: &wc.metrics}, nil
 }
 
 func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) (*webscraper.WebScraper, error) {
@@ -163,17 +169,20 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 				return ws, fmt.Errorf("webscraper gorutines has supressed the max go routines. Current: %v Max: %v", numGoRoutine, wc.Options.MaxGoRoutines)
 			}
 			// Options: Ability to cap the number of urls scraped. Shared value between each webscraper.
-			if wc.Options.MaxVisitedUrls <= wc.metrics.urlsVisited {
-				return ws, fmt.Errorf("url visited has supressed the max url visited. Current: %v Max: %v", wc.metrics.urlsVisited, wc.Options.MaxVisitedUrls)
+			if wc.Options.MaxVisitedUrls <= wc.metrics.UrlsVisited {
+				return ws, fmt.Errorf("url visited has supressed the max url visited. Current: %v Max: %v", wc.metrics.UrlsVisited, wc.Options.MaxVisitedUrls)
 			}
 
 			// Begin scraping concurrently
 			ws.WaitGroup.Add(1)
 			go func() {
 				defer ws.WaitGroup.Done()
-				scrapeResponse, _ := ws.Scrape(url, itemsToget, urlsToGet...)
-				wc.incrementMetrics(&Metrics{urlsFound: len(scrapeResponse.ExtractedURLs), urlsVisited: 1, itemsFound: len(scrapeResponse.ExtractedItem)})
-				wc.Logger.Infof("Go routine:%v | Crawling link: %v | Current depth: %v | Url Visited: %v | Url Found : %v | Duplicate Url found: %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, wc.metrics.urlsVisited, wc.metrics.urlsFound, wc.metrics.duplicatedUrlsFound, wc.metrics.itemsFound)
+				scrapeResponse, err := ws.Scrape(url, itemsToget, urlsToGet...)
+				if err != nil {
+					wc.errs <- err
+				}
+				wc.incrementMetrics(&Metrics{URL: wc.rootURL, UrlsFound: len(scrapeResponse.ExtractedURLs), UrlsVisited: 1, ItemsFound: len(scrapeResponse.ExtractedItem)})
+				wc.Logger.Infof("Go routine:%v | Crawling link: %v | Current depth: %v | Url Visited: %v | Url Found : %v | Duplicate Url found: %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, wc.metrics.UrlsVisited, wc.metrics.UrlsFound, wc.metrics.DuplicatedUrlsFound, wc.metrics.ItemsFound)
 				wc.processScrapedUrls(scrapeResponse.ExtractedURLs)
 				wc.pendingUrlsToCrawlCount <- -1
 				if !wc.Options.AllowEmptyItem && len(scrapeResponse.ExtractedItem) == 0 {
@@ -191,20 +200,23 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 
 func (wc *WebCrawler) incrementMetrics(m *Metrics) *Metrics {
 	wc.metricsLock.Lock()
-	if m.urlsFound != 0 {
-		wc.metrics.urlsFound += m.urlsFound
+	if m.URL != "" {
+		wc.metrics.URL = m.URL
+	}
+	if m.UrlsFound != 0 {
+		wc.metrics.UrlsFound += m.UrlsFound
 	}
 
-	if m.urlsVisited != 0 {
-		wc.metrics.urlsVisited += m.urlsVisited
+	if m.UrlsVisited != 0 {
+		wc.metrics.UrlsVisited += m.UrlsVisited
 	}
 
-	if m.itemsFound != 0 {
-		wc.metrics.itemsFound += m.itemsFound
+	if m.ItemsFound != 0 {
+		wc.metrics.ItemsFound += m.ItemsFound
 	}
 
-	if m.duplicatedUrlsFound != 0 {
-		wc.metrics.duplicatedUrlsFound += m.duplicatedUrlsFound
+	if m.DuplicatedUrlsFound != 0 {
+		wc.metrics.DuplicatedUrlsFound += m.DuplicatedUrlsFound
 	}
 	wc.metricsLock.Unlock()
 	return m
@@ -241,7 +253,7 @@ func (wc *WebCrawler) processCrawledLinks() {
 
 		if url.CurrentURL == "" {
 			wc.pendingUrlsToCrawlCount <- -1
-			wc.incrementMetrics(&Metrics{duplicatedUrlsFound: 1})
+			wc.incrementMetrics(&Metrics{DuplicatedUrlsFound: 1})
 			continue
 		}
 
@@ -250,7 +262,7 @@ func (wc *WebCrawler) processCrawledLinks() {
 			wc.visited[url.CurrentURL] = struct{}{}
 			wc.urlsToCrawl <- url
 		} else {
-			wc.incrementMetrics(&Metrics{duplicatedUrlsFound: 1})
+			wc.incrementMetrics(&Metrics{DuplicatedUrlsFound: 1})
 			wc.pendingUrlsToCrawlCount <- -1
 		}
 	}
@@ -323,9 +335,9 @@ func (wc *WebCrawler) livenessCheck() error {
 		if checkCounter {
 			go func() {
 				checkCounter = false
-				pastCounter := wc.metrics.urlsVisited
+				pastCounter := wc.metrics.UrlsVisited
 				time.Sleep(time.Second * 60)
-				presentCounter := wc.metrics.urlsVisited
+				presentCounter := wc.metrics.UrlsVisited
 				if pastCounter == presentCounter {
 					wc.stopAllWebScrapers()
 					// return fmt.Errorf("Failed liveness check, url has not been crawled during 30 second interval")
@@ -344,7 +356,10 @@ func (wc *WebCrawler) initRobotsTxtRestrictions(url string) error {
 	// Given URL, generate robots.txt url, and get the response.
 	wc.Logger.WithField("url", url).Debugf("Initializing robots.txt restrictions")
 	url = generateRobotsTxtURLPath(url)
-	resp := webscraper.ConnectToWebsite(url, wc.Options.HeaderKey, wc.Options.HeaderValue)
+	resp, err := webscraper.ConnectToWebsite(url, wc.Options.HeaderKey, wc.Options.HeaderValue)
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

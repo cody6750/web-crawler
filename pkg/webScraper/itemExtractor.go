@@ -2,7 +2,6 @@ package webcrawler
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -110,7 +109,6 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 								if !Validate(str, &itemDetails.ItemFilterConfiguration) {
 									return Item{}, nil
 								}
-								log.Print("Valid")
 							}
 							item.ItemDetails[itemDetailName] = str
 						}

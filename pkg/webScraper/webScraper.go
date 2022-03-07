@@ -48,17 +48,20 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 		urlTagsToCheck  map[string]bool
 		urlsToCheck     map[string]bool = make(map[string]bool)
 	)
-	response := ConnectToWebsite(u.CurrentURL, ws.HeaderKey, ws.HeaderValue).Body
-
+	response, err := ConnectToWebsite(u.CurrentURL, ws.HeaderKey, ws.HeaderValue)
+	if err != nil {
+		return &Response{}, err
+	}
+	body := response.Body
 	if !IsEmpty(urlsToGet) {
 		urlTagsToCheck = ws.generateTagsToCheckMap(urlsToGet)
 	}
 	if !IsEmpty(itemsToGet) {
 		itemTagsToCheck = ws.generateTagsToCheckMap(itemsToGet)
 	}
-	defer response.Close()
+	defer body.Close()
 	// Parse HTML response by turning it into Tokens
-	z := html.NewTokenizer(response)
+	z := html.NewTokenizer(body)
 	// This while loop parses through all of the tokens generated for the HTML response.
 	for {
 		//Iterate through each token
@@ -67,7 +70,6 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 		switch {
 		case tt == html.StartTagToken:
 			t := z.Token()
-
 			if IsEmpty(urlsToGet) {
 				//TODO: Replace ExtractedURL with a channel
 				url = ExtractURL(t, urlsToCheck)

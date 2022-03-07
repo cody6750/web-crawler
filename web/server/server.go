@@ -14,12 +14,12 @@ import (
 
 var (
 	logger              = logrus.New()
-	defaultAddress      = ":9090"
+	defaultPort         = ":9090"
 	defaultIdleTimeout  = time.Second * 120
 	defaultReadTimeout  = time.Second * 60
 	defaultWriteTimeout = time.Second * 60
 	defaultLogLevel     = logrus.InfoLevel
-	address             = defaultAddress
+	port                = defaultPort
 	logLevel            = defaultLogLevel
 	idleTimeout         = defaultIdleTimeout
 	readTimeout         = defaultReadTimeout
@@ -37,9 +37,9 @@ func init() {
 }
 
 func processEnvironmentVariables() error {
-	if os.Getenv("ADDRESS") != "" {
-		address = os.Getenv("ADDRESS")
-		logger.WithField("ADDRESS", address).Debug("ADDRESS overide found. Overriding with value %v", address)
+	if os.Getenv("PORT") != "" {
+		port = os.Getenv("PORT")
+		logger.WithField("PORT", port).Debug("PORT overide found. Overriding with value %v", port)
 	}
 	if os.Getenv("LOG_LEVEL") != "" {
 		logLevel := os.Getenv("LOG_LEVEL")
@@ -90,7 +90,7 @@ func Run() {
 
 	// create a new server
 	server := http.Server{
-		Addr:         address,
+		Addr:         port,
 		Handler:      serverMux,
 		IdleTimeout:  idleTimeout,
 		ReadTimeout:  readTimeout,

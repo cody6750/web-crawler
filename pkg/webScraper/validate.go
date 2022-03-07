@@ -21,7 +21,6 @@ func Validate(v interface{}, c *FilterConfiguration) bool {
 
 	switch v := v.(type) {
 	case int:
-		log.Print("int")
 		return ValidateInt(v, c)
 	case string:
 		if c.ConvertStringToNumber == "true" {
@@ -30,7 +29,6 @@ func Validate(v interface{}, c *FilterConfiguration) bool {
 		}
 		return ValidateString(v, c)
 	case float64:
-		log.Print("float")
 		return ValidateFloat64(v, c)
 	default:
 		return false
@@ -59,45 +57,44 @@ func ValidateString(s string, c *FilterConfiguration) bool {
 
 func ValidateInt(i int, c *FilterConfiguration) bool {
 	switch t := c.IsEqualTo.(type) {
-	case int:
-		if t != i && t != 0 {
+	case float64:
+		if int(t) != i && int(t) != 0 {
 			return false
 		}
 	}
 	switch t := c.IsNotEqualTo.(type) {
-	case int:
-		if t == i && t != 0 {
+	case float64:
+		if int(t) == i && int(t) != 0 {
 			return false
 		}
 	}
 
 	switch t := c.IsLessThan.(type) {
-	case int:
-		if t < i && t != 0 {
+	case float64:
+		if int(t) < i && int(t) != 0 {
 			return false
 		}
 	}
 
 	switch t := c.IsGreaterThan.(type) {
-	case int:
-		if t > i && t != 0 {
+	case float64:
+		if int(t) > i && int(t) != 0 {
 			return false
 		}
 	}
-
 	return true
 }
 
 func ValidateFloat64(f float64, c *FilterConfiguration) bool {
 	switch t := c.IsEqualTo.(type) {
 	case float64:
-		if t != f && t != 0 {
+		if t != f && t != 0.0 {
 			return false
 		}
 	}
 	switch t := c.IsNotEqualTo.(type) {
 	case float64:
-		if t == f && t != 0 {
+		if t == f && t != 0.0 {
 			return false
 		}
 	}

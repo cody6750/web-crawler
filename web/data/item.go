@@ -44,7 +44,7 @@ func DecodeToPayload(r *http.Request) (*Payload, error) {
 }
 
 // GetItem ...
-func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeItemConfig, ScrapeURLConfiguration ...webscraper.ScrapeURLConfig) ([]*webscraper.Response, error) {
+func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeItemConfig, ScrapeURLConfiguration ...webscraper.ScrapeURLConfig) (*webcrawler.Response, error) {
 	crawler := webcrawler.NewCrawler()
 	crawler.Logger = logger
 	response, err := crawler.Crawl(url, itemsToget, ScrapeURLConfiguration...)
@@ -56,7 +56,9 @@ func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeIt
 }
 
 // ToJSON ...
-func ToJSON(w io.Writer, r []*webscraper.Response) error {
+func ToJSON(w io.Writer, r *webcrawler.Response) error {
+	// body, _ := json.MarshalIndent(&r, "", "   ")
+	// log.Print(string(body))
 	e := json.NewEncoder(w)
 	e.SetIndent("", "    ")
 	return e.Encode(r)

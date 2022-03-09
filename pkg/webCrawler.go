@@ -1,6 +1,7 @@
 package webcrawler
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"runtime"
@@ -8,7 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	options "github.com/cody6750/web-crawler/pkg/options"
+	services "github.com/cody6750/web-crawler/pkg/services/aws"
 	webscraper "github.com/cody6750/web-crawler/pkg/webScraper"
 	"github.com/sirupsen/logrus"
 )
@@ -40,8 +45,17 @@ type WebCrawler struct {
 	metricsLock               sync.Mutex
 	Logger                    *logrus.Logger
 	Options                   *options.Options
+	// session established a session with AWS. Requires AWS to be configured on the
+	// machine. The session is created through initAWS which is set using options.AWSMaxRetries
+	// and options.AWSRegion or AWS_MAX_RETRIES and AWS_REGION environent variables.
+	session *session.Session
+
+	// s3Svc establishes a session with AWS S3 manager using the AWS session.
+	// Allows us to upload files to S3.
+	s3Svc *s3manager.Uploader
 }
 
+//Response ...
 type Response struct {
 	WebScraperResponses []*webscraper.Response
 	Metrics             *Metrics
@@ -58,6 +72,7 @@ func NewWithOptions(options *options.Options) *WebCrawler {
 	wc.Logger = logrus.New()
 	wc.Logger.SetFormatter(&logrus.TextFormatter{ForceColors: true, FullTimestamp: true})
 	wc.Options = options
+	wc.getEnvVariables()
 	return wc
 }
 
@@ -73,7 +88,6 @@ func (wc *WebCrawler) init(rootURL string) error {
 	wc.webScrapers = make(map[int]*webscraper.WebScraper)
 	wc.wg = *new(sync.WaitGroup)
 	wc.rootURL = rootURL
-
 	err := wc.initRobotsTxtRestrictions(rootURL)
 	if err != nil {
 		wc.Logger.WithField("URL: ", rootURL).Info("robots.txt does not exist for website")
@@ -82,13 +96,25 @@ func (wc *WebCrawler) init(rootURL string) error {
 
 }
 
+// initAWS creates the required AWS session and services.
+func (wc *WebCrawler) initAWS(maxRetries int, region string) {
+	configs := aws.Config{
+		Region:     aws.String(region),
+		MaxRetries: aws.Int(maxRetries),
+	}
+	wc.session = session.Must(session.NewSession(&configs))
+	wc.s3Svc = s3manager.NewUploader(wc.session)
+}
+
 //Crawl ...
 func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) (*Response, error) {
 	wc.Logger.WithField("url", url).Info("Starting to crawl url")
 	wgDone := make(chan bool)
 	err := wc.init(url)
+
 	if err != nil {
-		return nil, fmt.Errorf("cannot initialize crawler")
+		wc.Logger.WithError(err).Error("cannot initialize crawler")
+		return nil, err
 	}
 
 	if wc.Options.MaxDepth < 0 {
@@ -135,8 +161,23 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 	case err := <-wc.errs:
 		return &Response{WebScraperResponses: wc.webScraperResponses, Metrics: &wc.metrics}, err
 	}
+
+	response := &Response{WebScraperResponses: wc.webScraperResponses, Metrics: &wc.metrics}
+	if wc.Options.WriteOutputToS3 {
+		wc.initAWS(wc.Options.AWSMaxRetries, wc.Options.AWSRegion)
+		out, err := json.Marshal(response)
+		if err != nil {
+			wc.Logger.WithError(err).Error("Unable to marshal json")
+			return response, err
+		}
+		err = services.WriteToS3(wc.s3Svc, strings.NewReader(string(out)), wc.Options.AWSS3Bucket, services.GenerateFileName("crawl_results", ".json"), "")
+		if err != nil {
+			wc.Logger.WithError(err).Error("Unable to upload file to S3")
+			return response, err
+		}
+	}
 	wc.Logger.WithField("url", url).Info("Finished crawling url")
-	return &Response{WebScraperResponses: wc.webScraperResponses, Metrics: &wc.metrics}, nil
+	return response, nil
 }
 
 func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) (*webscraper.WebScraper, error) {

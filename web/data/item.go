@@ -30,15 +30,15 @@ type Payload struct {
 	RootURL                 string                        `json:"RootURL"`
 }
 
-// Items ...
-type Items []*Item
+// // Items ...
+// type Items []*Item
 
 // DecodeToPayload ...
-func DecodeToPayload(r *http.Request) (*Payload, error) {
-	payload := &Payload{}
-	err := json.NewDecoder(r.Body).Decode(payload)
+func DecodeToPayload(r *http.Request) (Payload, error) {
+	payload := Payload{}
+	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
-		return nil, err
+		return Payload{}, err
 	}
 	return payload, nil
 }
@@ -57,8 +57,6 @@ func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeIt
 
 // ToJSON ...
 func ToJSON(w io.Writer, r *webcrawler.Response) error {
-	// body, _ := json.MarshalIndent(&r, "", "   ")
-	// log.Print(string(body))
 	e := json.NewEncoder(w)
 	e.SetIndent("", "    ")
 	return e.Encode(r)

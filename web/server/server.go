@@ -9,6 +9,7 @@ import (
 
 	"github.com/cody6750/web-crawler/web/handler"
 	"github.com/cody6750/web-crawler/web/tools"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -120,11 +121,15 @@ func Run() {
 	server.Shutdown(tc)
 }
 
-func generateHandlers(logger *logrus.Logger) *http.ServeMux {
+func generateHandlers(logger *logrus.Logger) *mux.Router {
 	logger.Debug("Starting to generate handlers for web server")
-	serverMux := http.NewServeMux()
+	serverMux := mux.NewRouter()
 	crawler := handler.NewCrawler(logger)
-	serverMux.Handle("/crawler/item", crawler)
+
+	getRouter := serverMux.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/crawler/item", crawler.GetItem)
+	getRouter.Use(crawler.MiddlewareItemValidation)
+
 	logger.WithField("Handlers", serverMux).Debug("Successfully generated handlers for web server")
 	return serverMux
 }

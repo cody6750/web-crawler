@@ -30,10 +30,8 @@ type Payload struct {
 	RootURL                 string                        `json:"RootURL"`
 }
 
-// // Items ...
-// type Items []*Item
-
-// DecodeToPayload ...
+// DecodeToPayload used to decode web crawler response into a usuable struct that the web crawler server
+// can parse and execute functions with.
 func DecodeToPayload(r *http.Request) (Payload, error) {
 	payload := Payload{}
 	err := json.NewDecoder(r.Body).Decode(&payload)
@@ -43,9 +41,9 @@ func DecodeToPayload(r *http.Request) (Payload, error) {
 	return payload, nil
 }
 
-// GetItem ...
-func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeItemConfig, ScrapeURLConfiguration ...webscraper.ScrapeURLConfig) (*webcrawler.Response, error) {
-	crawler := webcrawler.NewCrawler()
+// GetItem executes the crawl function within the web crawler. Returns a http response with
+// the JSON response as the response body.
+func GetItem(crawler *webcrawler.WebCrawler, logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeItemConfig, ScrapeURLConfiguration ...webscraper.ScrapeURLConfig) (*webcrawler.Response, error) {
 	crawler.Logger = logger
 	response, err := crawler.Crawl(url, itemsToget, ScrapeURLConfiguration...)
 	if err != nil {
@@ -55,7 +53,7 @@ func GetItem(logger *logrus.Logger, url string, itemsToget []webscraper.ScrapeIt
 	return response, nil
 }
 
-// ToJSON ...
+// ToJSON encodes the web crawler response to JSON and writes that to the end user over http.
 func ToJSON(w io.Writer, r *webcrawler.Response) error {
 	e := json.NewEncoder(w)
 	e.SetIndent("", "    ")

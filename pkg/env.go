@@ -1,9 +1,9 @@
 package webcrawler
 
 import (
-	"fmt"
 	"os"
-	"strconv"
+
+	env "github.com/cody6750/web-crawler/shared"
 )
 
 // getEnvVariables allows users to override the values within the tracking bot options via environment variables.
@@ -13,7 +13,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	wc.Logger.Info("Getting environment variables")
 
 	if os.Getenv("ALLOW_EMPTY_ITEM") != "" {
-		wc.Options.AllowEmptyItem, err = getEnvBool("ALLOW_EMPTY_ITEM")
+		wc.Options.AllowEmptyItem, err = env.GetEnvBool("ALLOW_EMPTY_ITEM")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert ALLOW_EMPTY_ITEM from string to bool")
 		}
@@ -21,7 +21,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("WRITE_OUTPUT_TO_S3") != "" {
-		wc.Options.WriteOutputToS3, err = getEnvBool("WRITE_OUTPUT_TO_S3")
+		wc.Options.WriteOutputToS3, err = env.GetEnvBool("WRITE_OUTPUT_TO_S3")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert WRITE_OUTPUT_TO_S3 from string to bool")
 		}
@@ -29,7 +29,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("AWS_MAX_RERIES") != "" {
-		wc.Options.AWSMaxRetries, err = getEnvInt("AWS_MAX_RERIES")
+		wc.Options.AWSMaxRetries, err = env.GetEnvInt("AWS_MAX_RERIES")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert AWS_MAX_RERIES from string to int")
 		}
@@ -37,7 +37,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("CRAWL_DELAY") != "" {
-		wc.Options.CrawlDelay, err = getEnvInt("CRAWL_DELAY")
+		wc.Options.CrawlDelay, err = env.GetEnvInt("CRAWL_DELAY")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert  from string to int")
 		}
@@ -45,7 +45,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("MAX_DEPTH") != "" {
-		wc.Options.MaxDepth, err = getEnvInt("MAX_DEPTH")
+		wc.Options.MaxDepth, err = env.GetEnvInt("MAX_DEPTH")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert MAX_DEPTH from string to int")
 		}
@@ -53,7 +53,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("MAX_GO_ROUTINES") != "" {
-		wc.Options.MaxGoRoutines, err = getEnvInt("MAX_GO_ROUTINES")
+		wc.Options.MaxGoRoutines, err = env.GetEnvInt("MAX_GO_ROUTINES")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert MAX_GO_ROUTINES from string to int")
 		}
@@ -61,7 +61,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("MAX_VISITED_URLS") != "" {
-		wc.Options.MaxVisitedUrls, err = getEnvInt("MAX_VISITED_URLS")
+		wc.Options.MaxVisitedUrls, err = env.GetEnvInt("MAX_VISITED_URLS")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert MAX_VISITED_URLS from string to int")
 		}
@@ -69,7 +69,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("MAX_ITEMS_FOUND") != "" {
-		wc.Options.MaxItemsFound, err = getEnvInt("MAX_ITEMS_FOUND")
+		wc.Options.MaxItemsFound, err = env.GetEnvInt("MAX_ITEMS_FOUND")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert MAX_ITEMS_FOUND from string to int")
 		}
@@ -77,7 +77,7 @@ func (wc *WebCrawler) getEnvVariables() {
 	}
 
 	if os.Getenv("WEB_SCRAPER_WORKER_COUNT") != "" {
-		wc.Options.WebScraperWorkerCount, err = getEnvInt("WEB_SCRAPER_WORKER_COUNT")
+		wc.Options.WebScraperWorkerCount, err = env.GetEnvInt("WEB_SCRAPER_WORKER_COUNT")
 		if err != nil {
 			wc.Logger.WithError(err).Fatal("Failed to convert WEB_SCRAPER_WORKER_COUNT from string to int")
 		}
@@ -106,31 +106,4 @@ func (wc *WebCrawler) getEnvVariables() {
 
 	wc.Logger.Info("Successfully got environment variables")
 
-}
-
-// getEnvBool converts string environment variables to booleans.
-func getEnvBool(envVar string) (bool, error) {
-	s := os.Getenv(envVar)
-	if s == "" {
-		return false, fmt.Errorf("")
-	}
-	v, err := strconv.ParseBool(s)
-	if err != nil {
-		return false, err
-	}
-	return v, nil
-}
-
-// getEnvBool converts string environment variables to integers.
-func getEnvInt(envVar string) (int, error) {
-	s := os.Getenv(envVar)
-	if s == "" {
-		return 0, fmt.Errorf("")
-	}
-	strconv.Atoi(s)
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		return v, err
-	}
-	return v, nil
 }

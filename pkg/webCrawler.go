@@ -244,6 +244,7 @@ func (wc *WebCrawler) incrementMetrics(m *Metrics) *Metrics {
 	if m.URL != "" {
 		wc.metrics.URL = m.URL
 	}
+
 	if m.UrlsFound != 0 {
 		wc.metrics.UrlsFound += m.UrlsFound
 	}
@@ -267,6 +268,7 @@ func (wc *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 	if len(scrapedUrls) == 0 {
 		return
 	}
+
 	if scrapedUrls[0].CurrentDepth > wc.Options.MaxDepth {
 		//continue
 	} else {
@@ -359,6 +361,7 @@ func (wc *WebCrawler) readinessCheck() error {
 		wc.Logger.WithFields(logrus.Fields{"Current # of webscrapers": len(wc.webScrapers), "Required # of webscrapers": wc.Options.WebScraperWorkerCount}).Error("Failed health check, required # of webscrapers not reached")
 		return fmt.Errorf("health check has failed")
 	}
+
 	wc.Logger.Info("Readiness check passed")
 	return nil
 }
@@ -383,6 +386,7 @@ func (wc *WebCrawler) livenessCheck() error {
 					wc.stopAllWebScrapers()
 					// return fmt.Errorf("Failed liveness check, url has not been crawled during 30 second interval")
 				}
+
 				wc.Logger.Info("Liveness check passed")
 				checkCounter = true
 			}()
@@ -401,6 +405,7 @@ func (wc *WebCrawler) initRobotsTxtRestrictions(url string) error {
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

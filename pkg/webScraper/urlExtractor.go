@@ -11,7 +11,7 @@ const (
 	hrefAttribute string = "href"
 )
 
-//URL ...
+//URL represents extracted url
 type URL struct {
 	RootURL      string
 	ParentURL    string
@@ -20,14 +20,14 @@ type URL struct {
 	MaxDepth     int
 }
 
-//ScrapeURLConfig ...
+//ScrapeURLConfig configuration used to extract url from html token
 type ScrapeURLConfig struct {
 	Name                   string                 `json:"Name"`
 	ExtractFromTokenConfig ExtractFromTokenConfig `json:"ExtractFromTokenConfig"`
 	FormatURLConfig        FormatURLConfig        `json:"FormatURLConfiguration"`
 }
 
-//ExtractURL ...
+//ExtractURL extracts url from html token. Checks for duplicates
 func ExtractURL(t html.Token, extractedUrls map[string]bool) string {
 	url, _ := extractURLFromToken(t)
 	if url != "" && !isDuplicateURL(url, extractedUrls) {
@@ -36,7 +36,8 @@ func ExtractURL(t html.Token, extractedUrls map[string]bool) string {
 	return ""
 }
 
-//ExtractURLWithScrapURLConfig ...
+// ExtractURLWithScrapURLConfig extracts url from html token using a list of scrape url config which allows
+// for selective extraction.
 func ExtractURLWithScrapURLConfig(t html.Token, urlsToCheck map[string]bool, tagsToCheck map[string]bool, scrapeURLConfigs []ScrapeURLConfig) (string, error) {
 	var url string
 	for _, scrapeURLConfig := range scrapeURLConfigs {
@@ -65,6 +66,9 @@ func ExtractURLWithScrapURLConfig(t html.Token, urlsToCheck map[string]bool, tag
 	}
 	return url, fmt.Errorf("Unable to extract url with scrap url config")
 }
+
+// extractURLFromTokenUsingConfig extracts url from html token using a scrape url config which allows
+// for selective extraction.
 func extractURLFromTokenUsingConfig(token html.Token, urlConfig ExtractFromTokenConfig) (string, error) {
 	value, err := extractAttributeValue(token, urlConfig.Attribute)
 	if err != nil {
@@ -77,6 +81,7 @@ func extractURLFromTokenUsingConfig(token html.Token, urlConfig ExtractFromToken
 	return value, fmt.Errorf("unable to extract url from token using the url configuration, %v retrived", value)
 }
 
+// extractURLFromTokenUsingConfig extracts url from html token which allows for selective extraction.
 func extractURLFromToken(token html.Token) (string, error) {
 	hrefValue, err := extractAttributeValue(token, hrefAttribute)
 	if err != nil {
@@ -85,6 +90,7 @@ func extractURLFromToken(token html.Token) (string, error) {
 	return hrefValue, nil
 }
 
+// isDuplicateURL checks for duplicate urls.
 func isDuplicateURL(url string, urlsToCheck map[string]bool) bool {
 	if _, exist := urlsToCheck[url]; exist {
 		return true

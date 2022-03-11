@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-//ComparisonConfiguration ...
+// FilterConfiguration used to filter web scraper results.
 type FilterConfiguration struct {
 	IsLessThan            interface{} `json:"IsLessThan"`
 	IsGreaterThan         interface{} `json:"IsGreaterThan"`
@@ -17,8 +17,8 @@ type FilterConfiguration struct {
 	ConvertStringToNumber string      `json:"ConvertStringToNumber"`
 }
 
+// Validate Filters the results by comparing to the Filter Configuration to check if the conditions are met.
 func Validate(v interface{}, c *FilterConfiguration) bool {
-
 	switch v := v.(type) {
 	case int:
 		return ValidateInt(v, c)
@@ -35,6 +35,7 @@ func Validate(v interface{}, c *FilterConfiguration) bool {
 	}
 }
 
+// ValidateString Filters the given string by comparing to the Filter Configuration to check if the conditions are met.
 func ValidateString(s string, c *FilterConfiguration) bool {
 	if !strings.Contains(s, c.Contains) {
 		return false
@@ -55,6 +56,7 @@ func ValidateString(s string, c *FilterConfiguration) bool {
 	return true
 }
 
+// ValidateInt Filters the given int by comparing to the Filter Configuration to check if the conditions are met.
 func ValidateInt(i int, c *FilterConfiguration) bool {
 	switch t := c.IsEqualTo.(type) {
 	case float64:
@@ -85,6 +87,7 @@ func ValidateInt(i int, c *FilterConfiguration) bool {
 	return true
 }
 
+// ValidateFloat64 Filters the given float64 by comparing to the Filter Configuration to check if the conditions are met.
 func ValidateFloat64(f float64, c *FilterConfiguration) bool {
 	switch t := c.IsEqualTo.(type) {
 	case float64:
@@ -114,6 +117,7 @@ func ValidateFloat64(f float64, c *FilterConfiguration) bool {
 	return true
 }
 
+// ConvertStringToNunber Turns string into int or float
 func ConvertStringToNunber(s string) interface{} {
 	s = strings.ReplaceAll(s, ",", "")
 	re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)

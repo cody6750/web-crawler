@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-//IsEmpty ...
+//IsEmpty generic is empty function.
 func IsEmpty(i interface{}) bool {
 	switch i := i.(type) {
 	case ExtractFromTokenConfig:

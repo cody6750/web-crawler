@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-//Item ...
+//Item represents extracted item
 type Item struct {
 	ItemName    string
 	URL         *URL
@@ -17,14 +17,15 @@ type Item struct {
 	ItemDetails map[string]string
 }
 
-//ScrapeItemConfig ...
+//ScrapeItemConfig configuration used to extract item from html token
 type ScrapeItemConfig struct {
 	ItemName    string                            `json:"ItemName"`
 	ItemToGet   ExtractFromTokenConfig            `json:"ItemToGet"`
 	ItemDetails map[string]ExtractFromTokenConfig `json:"ItemDetails"`
 }
 
-//ExtractItemWithScrapItemConfig ...
+// ExtractItemWithScrapItemConfig extracts item from html token using a list of scrape item config which allows
+// for selective extraction.
 func ExtractItemWithScrapItemConfig(t html.Token, z *html.Tokenizer, itemTagsToCheck map[string]bool, scrapeItemConfig []ScrapeItemConfig) (Item, error) {
 	if itemTagsToCheck[t.Data] {
 		for _, scrapeItemConfig := range scrapeItemConfig {
@@ -44,6 +45,10 @@ func ExtractItemWithScrapItemConfig(t html.Token, z *html.Tokenizer, itemTagsToC
 	return Item{}, fmt.Errorf("unable to extract item with scrape item config")
 }
 
+// parseTokenForItemDetails parses html block and extracts item details using the scrape item config from the tags, attributes,
+// and comments of the html elemements. Given the start token of an html block, parse that block by pushing each start token onto the stack,
+// when encountering end tokens, pop tokens off of the stack. Since start tokens have corresponding end tokens, the end of the block is reached
+// when the length of the stack is 0. Returns the item with the item details.
 func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemConfig ScrapeItemConfig) (Item, error) {
 	var (
 		tokenType             html.TokenType
@@ -127,6 +132,8 @@ func parseTokenForItemDetails(token html.Token, z *html.Tokenizer, scrapeItemCon
 	return item, nil
 }
 
+// generateItemDetailsTagsToCheckMap generates a map of tags to check given the scrape item configuration. The map is used to check
+// whether or not the html element should be used to extract from
 func generateItemDetailsTagsToCheckMap(itemDetailTagsToCheck map[string]bool, scrapeItemConfig ScrapeItemConfig) (map[string]bool, error) {
 	for _, item := range scrapeItemConfig.ItemDetails {
 		if len(itemDetailTagsToCheck) == 0 {

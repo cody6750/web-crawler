@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-//FormatURLConfig ...
+//FormatURLConfig configuration used to format a url given that the conditions are met.
 type FormatURLConfig struct {
 	SuffixExist      string `json:"SuffixExist"`
 	SuffixToAdd      string `json:"SuffixToAdd"`
@@ -16,6 +16,7 @@ type FormatURLConfig struct {
 	ReplaceNewString string `json:"ReplaceNewString"`
 }
 
+//formatURL used to format a url given that the conditions are met.
 func formatURL(url string, config FormatURLConfig) string {
 	if strings.HasPrefix(url, config.PrefixExist) && strings.HasSuffix(url, config.SuffixExist) && strings.Contains(url, config.ReplaceOldString) {
 		if config.ReplaceOldString != "" && config.ReplaceNewString != "" {

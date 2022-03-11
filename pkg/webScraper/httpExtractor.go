@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-//ExtractFromTokenConfig ...
+//ExtractFromTokenConfig used to extract from html token.
 type ExtractFromTokenConfig struct {
 	ItemFilterConfiguration      FilterConfiguration `json:"FilterConfiguration"`
 	FormatAttributeConfiguration FormatURLConfig     `json:"FormatAttributeConfiguration"`
@@ -17,6 +17,7 @@ type ExtractFromTokenConfig struct {
 	AttributeToGet               string              `json:"AttributeToGet"`
 }
 
+// extractAttributeValue given an token, extract the given attribute.
 func extractAttributeValue(token html.Token, attributeToGet string) (attributeValue string, err error) {
 	for _, a := range token.Attr {
 		if a.Key == attributeToGet {

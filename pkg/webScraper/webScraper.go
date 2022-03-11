@@ -51,7 +51,9 @@ func New() *WebScraper {
 	return ws
 }
 
-//Scrape ..
+//Scrape serves as the main function for the web scraper. Given a url, get the html contents of the url and parse
+// the html content for urls and items. It parses the html content by generating tokens for each html element. Tags
+// and attributes are extracted for each token,and are used to extract the url and items based on the config parameters.
 func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ...ScrapeURLConfig) (*Response, error) {
 	var (
 		url             string
@@ -112,6 +114,8 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 	}
 }
 
+// generateTagsToCheckMap generates a map of tags to check, given the scrape tag configuration. The map is used for both
+// url and item scraping. The map is used to check whether or not the html element should be used to extract from.
 func (ws *WebScraper) generateTagsToCheckMap(t interface{}) map[string]bool {
 	switch t := t.(type) {
 	case []ScrapeURLConfig:
@@ -136,6 +140,7 @@ func (ws *WebScraper) generateTagsToCheckMap(t interface{}) map[string]bool {
 	return map[string]bool{}
 }
 
+// isBlackListedURLPath breaks down a url path and checks if it is blacklisted.
 func (ws *WebScraper) isBlackListedURLPath(url string) bool {
 	var urlToCheck string
 	splitURLPath := strings.SplitN(url, "/", 4)

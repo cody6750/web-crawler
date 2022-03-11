@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//ConnectToWebsite ...
+//ConnectToWebsite Executes a HTTP request to the url and returns the response.
 func ConnectToWebsite(url, headerKey, headerValue string) (*http.Response, error) {
 	client := &http.Client{
 		Timeout: 60 * time.Second,

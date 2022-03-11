@@ -12,26 +12,39 @@ var (
 	err error
 )
 
-//WebScraper ...
+// WebScraper represents all dependencies required to initialize the web scraper.
 type WebScraper struct {
-	Logger              *logrus.Logger
+
+	// Logger used to log.
+	Logger *logrus.Logger
+
+	// BlackListedURLPaths used to check if url is blacklisted
 	BlackListedURLPaths map[string]struct{}
-	RootURL             string
-	ScraperNumber       int
-	Stop                chan struct{}
-	WaitGroup           sync.WaitGroup
-	HeaderKey           string
-	HeaderValue         string
+
+	// ScraperNumber used to indentify web scraper worker
+	ScraperNumber int
+
+	// Stop serves as a signal reciever, used to stop the execution of the web scraper.
+	Stop chan struct{}
+
+	// WaitGroup used to wait for channels in the web scraper.
+	WaitGroup sync.WaitGroup
+
+	// HeaderKey Used to set http header
+	HeaderKey string
+
+	// HeaderKey Used to set http header
+	HeaderValue string
 }
 
-//Response ...
+//Response represents the response the web scraper returns to the web cralwer.
 type Response struct {
 	RootURL       string
 	ExtractedItem []*Item
 	ExtractedURLs []*URL
 }
 
-//New ..
+//New initializes a web scraper with default options
 func New() *WebScraper {
 	ws := &WebScraper{}
 	ws.Logger = logrus.New()
@@ -79,7 +92,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 
 			if url != "" {
 				if isBlackListedURLPath := ws.isBlackListedURLPath(url); !isBlackListedURLPath {
-					urls = append(urls, &URL{CurrentURL: url, ParentURL: u.CurrentURL, RootURL: ws.RootURL, CurrentDepth: u.CurrentDepth + 1, MaxDepth: u.MaxDepth})
+					urls = append(urls, &URL{CurrentURL: url, ParentURL: u.CurrentURL, RootURL: u.RootURL, CurrentDepth: u.CurrentDepth + 1, MaxDepth: u.MaxDepth})
 				}
 			}
 
@@ -94,7 +107,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 
 			// This is our break statement
 		case tt == html.ErrorToken:
-			return &Response{RootURL: ws.RootURL, ExtractedURLs: urls, ExtractedItem: items}, nil
+			return &Response{RootURL: u.RootURL, ExtractedURLs: urls, ExtractedItem: items}, nil
 		}
 	}
 }

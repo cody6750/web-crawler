@@ -2,7 +2,7 @@ package options
 
 var (
 	defaultAllowEmptyItem        bool   = false
-	defaultWriteOutputToS3       bool   = true
+	defaultWriteOutputToS3       bool   = false
 	defaultAWSMaxRetries         int    = 5
 	defaultCrawlDelay            int    = 5
 	defaultMaxDepth              int    = 0

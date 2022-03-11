@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Metrics ...
+// Metrics represents all exposed metrics by the web crawler
 type Metrics struct {
 	URL                 string
 	DuplicatedUrlsFound int
@@ -27,24 +27,56 @@ type Metrics struct {
 	ItemsFound          int
 }
 
-//WebCrawler ...
+//Web Crawler represents all dependencies required to initialize the web crawler.
 type WebCrawler struct {
-	rootURL                   string
-	pendingUrlsToCrawlCount   chan int
-	pendingUrlsToCrawl        chan *webscraper.URL
-	urlsToCrawl               chan *webscraper.URL
+
+	// errs is used to return errors that occur during the concurrent execution of the web scrapers
+	// between the go routines.
+	errs chan error
+
+	// pendingUrlsToCrawlCount serves as global variable between channels, used to monitor the length of
+	// the pendingUrlsToCrawl channel.
+	pendingUrlsToCrawlCount chan int
+
+	// stop serves as a signal reciever, used to stop the execution of the web crawler.
+	stop chan struct{}
+
+	// pendingUrlsToCrawlCount serves as a preprocessing stage for the urls that have been scraped.
+	pendingUrlsToCrawl chan *webscraper.URL
+
+	// urlsToCrawl servers as a stage that supplys the url to crawl. Ever webscraper worker will cosntantly
+	// be listening and retriveing the url to crawl on this channel.
+	urlsToCrawl chan *webscraper.URL
+
+	// collectWebScraperResponsen aggregate the webs craping responses from each web scraper worker and is returned
+	// in the crawler response.
 	collectWebScraperResponse chan *webscraper.Response
-	errs                      chan error
-	webScraperResponses       []*webscraper.Response
-	stop                      chan struct{}
-	metrics                   Metrics
-	visited                   map[string]struct{}
-	webScrapers               map[int]*webscraper.WebScraper
-	wg                        sync.WaitGroup
-	mapLock                   sync.Mutex
-	metricsLock               sync.Mutex
-	Logger                    *logrus.Logger
-	Options                   *options.Options
+
+	// webScrapers keeps track of all of the web scraper workers and their worker numbers. This is used to stop
+	// specific webscraper workers.
+	webScrapers map[int]*webscraper.WebScraper
+
+	// visited used to keep track of all of the visited urls between the web scraper workers.
+	visited map[string]struct{}
+
+	// metrics represents all exposed metrics by the web crawler.
+	metrics Metrics
+
+	//Options represents the configurable options for the web crawler.
+	Options *options.Options
+
+	//mapLock used to block the initialization of the webScrapers map to prevent race conditions.
+	mapLock sync.Mutex
+
+	//mapLock used to block actions on the metrics object.
+	metricsLock sync.Mutex
+
+	//wg used to wait for channels in the web crawler.
+	wg sync.WaitGroup
+
+	//Logger used to log.
+	Logger *logrus.Logger
+
 	// session established a session with AWS. Requires AWS to be configured on the
 	// machine. The session is created through initAWS which is set using options.AWSMaxRetries
 	// and options.AWSRegion or AWS_MAX_RETRIES and AWS_REGION environent variables.
@@ -53,20 +85,24 @@ type WebCrawler struct {
 	// s3Svc establishes a session with AWS S3 manager using the AWS session.
 	// Allows us to upload files to S3.
 	s3Svc *s3manager.Uploader
+
+	//webScraperResponses represents the aggregated responses from all web scrapers. Returned to the end user in
+	// the web crawler response
+	webScraperResponses []*webscraper.Response
 }
 
-//Response ...
+//Response represents the response the web crawler returns to the end user.
 type Response struct {
 	WebScraperResponses []*webscraper.Response
 	Metrics             *Metrics
 }
 
-//NewCrawler ...
+//NewCrawler initializes a web crawler using the default options.
 func NewCrawler() *WebCrawler {
 	return NewWithOptions(options.New())
 }
 
-//NewWithOptions ...
+//NewWithOptions initializes a web crawler using custom options.
 func NewWithOptions(options *options.Options) *WebCrawler {
 	wc := &WebCrawler{}
 	wc.Logger = logrus.New()
@@ -76,8 +112,9 @@ func NewWithOptions(options *options.Options) *WebCrawler {
 	return wc
 }
 
-//Init ...
-func (wc *WebCrawler) init(rootURL string) error {
+// init intializes all required channels and objects for the web crawler. It sets all of the
+// robots.txt restrictions as well.
+func (wc *WebCrawler) init(url string) error {
 	wc.pendingUrlsToCrawlCount = make(chan int)
 	wc.pendingUrlsToCrawl = make(chan *webscraper.URL)
 	wc.collectWebScraperResponse = make(chan *webscraper.Response)
@@ -87,10 +124,9 @@ func (wc *WebCrawler) init(rootURL string) error {
 	wc.visited = make(map[string]struct{})
 	wc.webScrapers = make(map[int]*webscraper.WebScraper)
 	wc.wg = *new(sync.WaitGroup)
-	wc.rootURL = rootURL
-	err := wc.initRobotsTxtRestrictions(rootURL)
+	err := wc.initRobotsTxtRestrictions(url)
 	if err != nil {
-		wc.Logger.WithField("URL: ", rootURL).Info("robots.txt does not exist for website")
+		wc.Logger.WithField("URL: ", url).Info("robots.txt does not exist for website")
 	}
 	return nil
 
@@ -106,7 +142,11 @@ func (wc *WebCrawler) initAWS(maxRetries int, region string) {
 	wc.s3Svc = s3manager.NewUploader(wc.session)
 }
 
-//Crawl ...
+// Crawl servers as the main function for the web crawler. It sets up all necessary channels needed to crawl, and initializes
+// all of the web scraper workers. Once initialzied, the root url is processed and begins to feed the channels the next set of
+// urls to crawl. This cycle continues until there are no more urls to crawl or there a stop signal is executed. All of the
+// results are aggregated from all of the web scraper workers into a single web crawler response which is returned to the
+// end user.
 func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) (*Response, error) {
 	wc.Logger.WithField("url", url).Info("Starting to crawl url")
 	wgDone := make(chan bool)
@@ -125,7 +165,7 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		wc.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: wc.Options.MaxDepth}})
 	}()
 
-	go wc.processCrawledLinks()
+	go wc.processCrawledUrls()
 
 	go wc.monitorCrawling()
 
@@ -180,11 +220,14 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 	return response, nil
 }
 
+// runWebScraper creates an instance of the web scraper, this represents a single web scraper worker. The web scraper
+// worker actively listens to the urlsToCrawl channels for urls and begins to scrape them for urls and items. This function
+// implements a variety of features which include delaying the crawl between urls, can restrict number of go routines runnning, ability
+// to stop scraping onces if the max number of urls are visited, and collects metrics.
 func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.ScrapeItemConfig, urlsToGet ...webscraper.ScrapeURLConfig) (*webscraper.WebScraper, error) {
 	wg := new(sync.WaitGroup)
 	ws := &webscraper.WebScraper{
 		Logger:              wc.Logger,
-		RootURL:             wc.rootURL,
 		ScraperNumber:       scraperNumber,
 		Stop:                wc.stop,
 		WaitGroup:           *wg,
@@ -222,8 +265,8 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 				if err != nil {
 					wc.errs <- err
 				}
-				wc.incrementMetrics(&Metrics{URL: wc.rootURL, UrlsFound: len(scrapeResponse.ExtractedURLs), UrlsVisited: 1, ItemsFound: len(scrapeResponse.ExtractedItem)})
-				wc.Logger.Infof("Go routine:%v | Crawling link: %v | Current depth: %v | Url Visited: %v | Url Found : %v | Duplicate Url found: %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, wc.metrics.UrlsVisited, wc.metrics.UrlsFound, wc.metrics.DuplicatedUrlsFound, wc.metrics.ItemsFound)
+				wc.incrementMetrics(&Metrics{URL: url.RootURL, UrlsFound: len(scrapeResponse.ExtractedURLs), UrlsVisited: 1, ItemsFound: len(scrapeResponse.ExtractedItem)})
+				wc.Logger.Infof("Go routine:%v | Crawling url: %v | Current depth: %v | Url Visited: %v | Url Found : %v | Duplicate Url found: %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, wc.metrics.UrlsVisited, wc.metrics.UrlsFound, wc.metrics.DuplicatedUrlsFound, wc.metrics.ItemsFound)
 				wc.processScrapedUrls(scrapeResponse.ExtractedURLs)
 				wc.pendingUrlsToCrawlCount <- -1
 				if !wc.Options.AllowEmptyItem && len(scrapeResponse.ExtractedItem) == 0 {
@@ -239,6 +282,7 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 	}
 }
 
+// incrementMetrics used to aggregate results from each web scraper worker and appends them to the existing metrics.
 func (wc *WebCrawler) incrementMetrics(m *Metrics) *Metrics {
 	wc.metricsLock.Lock()
 	if m.URL != "" {
@@ -264,6 +308,8 @@ func (wc *WebCrawler) incrementMetrics(m *Metrics) *Metrics {
 	return m
 }
 
+// processScrapedUrls checks the current depth of the url and decides whether or not
+// to send the urls to the pendingUrlsToCrawl channel.
 func (wc *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 	if len(scrapedUrls) == 0 {
 		return
@@ -279,14 +325,17 @@ func (wc *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 	}
 }
 
+// processSrapedResponse aggregates web scraper responses from all web scraper workers
 func (wc *WebCrawler) processSrapedResponse() {
 	for response := range wc.collectWebScraperResponse {
 		wc.webScraperResponses = append(wc.webScraperResponses, response)
 	}
 }
 
-//processCrawledLinks ...
-func (wc *WebCrawler) processCrawledLinks() {
+// processCrawledUrls checks the url to see if its empty, if it's been visited, and generates metrics.
+// If the url is ready to be crawled, it is then sent to the pendingUrlsToCrawl channel where the web scraper
+// workers are actively listening to.
+func (wc *WebCrawler) processCrawledUrls() {
 	for {
 		url := <-wc.pendingUrlsToCrawl
 		if url == nil {
@@ -311,7 +360,9 @@ func (wc *WebCrawler) processCrawledLinks() {
 	}
 }
 
-//monitorCrawling ...
+// monitorCrawling used as a groutine that actively checks the pendingUrlsToCrawlCount channel to determine the state
+// of the web scrapers. If the web scrapers have finished or halted or are stuck, then this function will gracefully stop
+// all web scrapers and close all of the channels.
 func (wc *WebCrawler) monitorCrawling() {
 	var c int
 	for count := range wc.pendingUrlsToCrawlCount {
@@ -327,12 +378,13 @@ func (wc *WebCrawler) monitorCrawling() {
 	}
 }
 
+// shutDownWebScraper stops web scraper by sending a signal over the stop channel
 func (wc *WebCrawler) shutDownWebScraper(s *webscraper.WebScraper) {
 	defer wc.wg.Done()
 	s.Stop <- struct{}{}
 }
 
-// StopWebScraper ...
+// StopWebScraper stops web scraper using scraper number
 func (wc *WebCrawler) StopWebScraper(scraperNumbers []int) {
 	for _, scraperNumber := range scraperNumbers {
 		if scraper, scraperExist := wc.webScrapers[scraperNumber]; scraperExist {
@@ -344,6 +396,7 @@ func (wc *WebCrawler) StopWebScraper(scraperNumbers []int) {
 	wc.wg.Wait()
 }
 
+// stopAllWebScrapers stops all web scrapers.
 func (wc *WebCrawler) stopAllWebScrapers() {
 	wc.Logger.Debug("Stoping all webscrapers")
 	for _, scraper := range wc.webScrapers {
@@ -354,7 +407,8 @@ func (wc *WebCrawler) stopAllWebScrapers() {
 	wc.Logger.Debug("Successfully stopped all webscrapers")
 }
 
-// readinessCheck ensures that the specified number of webscraper workers have start up correctly which indicates that the crawler has started up correctly and are ready to scrape.
+// readinessCheck ensures that the specified number of webscraper workers have start up correctly which indicates that
+// the crawler has started up correctly and are ready to scrape.
 func (wc *WebCrawler) readinessCheck() error {
 	time.Sleep(time.Second * 10)
 	if len(wc.webScrapers) != wc.Options.WebScraperWorkerCount {
@@ -366,6 +420,8 @@ func (wc *WebCrawler) readinessCheck() error {
 	return nil
 }
 
+// livenessCheck determines if the web crawler is able to crawl urls, checks if web crawler is stuck crawling a url. It also
+// checks the cpu and memory usages.
 func (wc *WebCrawler) livenessCheck() error {
 	checkCounter := true
 	for {
@@ -384,7 +440,6 @@ func (wc *WebCrawler) livenessCheck() error {
 				presentCounter := wc.metrics.UrlsVisited
 				if pastCounter == presentCounter {
 					wc.stopAllWebScrapers()
-					// return fmt.Errorf("Failed liveness check, url has not been crawled during 30 second interval")
 				}
 
 				wc.Logger.Info("Liveness check passed")
@@ -397,6 +452,7 @@ func (wc *WebCrawler) livenessCheck() error {
 	}
 }
 
+// initRobotsTxtRestrictions parses the given website robots.txt web page and intializes the user agent restrictions
 func (wc *WebCrawler) initRobotsTxtRestrictions(url string) error {
 	// Given URL, generate robots.txt url, and get the response.
 	wc.Logger.WithField("url", url).Debugf("Initializing robots.txt restrictions")
@@ -434,6 +490,7 @@ func (wc *WebCrawler) initRobotsTxtRestrictions(url string) error {
 	return nil
 }
 
+// generateRobotsTxtURLPath given any url, generate the robots txt url path
 func generateRobotsTxtURLPath(url string) string {
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
 		url = strings.Replace(url, strings.SplitAfterN(url, "/", 4)[3], "robots.txt", 1)

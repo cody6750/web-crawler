@@ -2,7 +2,6 @@ package data
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 
 	webcrawler "github.com/cody6750/web-crawler/pkg"
@@ -51,11 +50,4 @@ func GetItem(crawler *webcrawler.WebCrawler, logger *logrus.Logger, url string, 
 		return response, err
 	}
 	return response, nil
-}
-
-// ToJSON encodes the web crawler response to JSON and writes that to the end user over http.
-func ToJSON(w io.Writer, r *webcrawler.Response) error {
-	e := json.NewEncoder(w)
-	e.SetIndent("", "    ")
-	return e.Encode(r)
 }

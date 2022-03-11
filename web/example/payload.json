@@ -1,30 +1,34 @@
 {
-    "RootURL" :"https://www.newegg.com/p/pl?d=RTX+3080&LeftPriceRange=600+1900&PageSize=96",
+    "RootURL" :"https://www.ebay.com/sch/i.html?_nkw=rtx+3050+graphics+card&_sop=15&rt=nc&LH_BIN=1",
     "ScrapeItemConfiguration": [ 
         {
             "ItemName" : "Graphics Card",
             "ItemToGet" :  {
-                "Tag" : "div",
+                "Tag" : "li",
                 "Attribute" : "class",
-                "AttributeValue" : "item-container"
+                "AttributeValue" : "s-item s-item__pl-on-bottom s-item--watch-at-corner"
             },
             "ItemDetails" : {
+                "title" : {
+                    "Tag": "h3",
+                    "Attribute": "class",
+                    "AttributeValue" : "s-item__title"
+                },
                 "link" : {
                     "Tag": "a",
                     "Attribute": "class",
-                    "AttributeValue" : "item-title",
-                    "AttributeToGet" : "href"
-                },
+                    "AttributeValue" : "s-item__link",
+                    "AttributeToGet": "href"
+                },                 
                 "price" : {
                     "Tag": "span",
                     "Attribute": "class",
-                    "AttributeValue" : "price-current-label",
-                    "SkipToken" : 1
-                },                
-                "title" : {
-                    "Tag": "a",
-                    "Attribute": "class",
-                    "AttributeValue" : "item-title"
+                    "AttributeValue" : "s-item__price",
+                    "FilterConfiguration": {
+                        "IsLessThan" : 450,
+                        "IsGreaterThan" : 200,
+                        "ConvertStringToNumber" : "true"
+                    }
                 }
             }
         }
@@ -54,7 +58,7 @@
         {
             "FormatURLConfiguration": {
                 "PrefixExist":    "/",
-                "PrefixToAdd":    "http://newegg.com"
+                "PrefixToAdd":    "http://ebay.com"
             }
         }                        
     ]

@@ -1,0 +1,65 @@
+{
+    "RootURL" :"https://www.ebay.com/sch/i.html?_nkw=rtx+3050+graphics+card&_sop=15&rt=nc&LH_BIN=1",
+    "ScrapeItemConfiguration": [ 
+        {
+            "ItemName" : "Graphics Card",
+            "ItemToGet" :  {
+                "Tag" : "li",
+                "Attribute" : "class",
+                "AttributeValue" : "s-item s-item__pl-on-bottom s-item--watch-at-corner"
+            },
+            "ItemDetails" : {
+                "title" : {
+                    "Tag": "h3",
+                    "Attribute": "class",
+                    "AttributeValue" : "s-item__title"
+                },
+                "link" : {
+                    "Tag": "a",
+                    "Attribute": "class",
+                    "AttributeValue" : "s-item__link",
+                    "AttributeToGet": "href"
+                },                 
+                "price" : {
+                    "Tag": "span",
+                    "Attribute": "class",
+                    "AttributeValue" : "s-item__price",
+                    "FilterConfiguration": {
+                        "IsLessThan" : 450,
+                        "IsGreaterThan" : 200,
+                        "ConvertStringToNumber" : "true"
+                    }
+                }
+            }
+        }
+    ],
+    "ScrapeURLConfiguration": [
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "////",
+                "PrefixToRemove": "////",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "///",
+                "PrefixToRemove": "///",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "//",
+                "PrefixToRemove": "//",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "/",
+                "PrefixToAdd":    "http://ebay.com"
+            }
+        }                        
+    ]
+}

@@ -2,10 +2,10 @@ FROM golang:1.16-alpine AS production
 
 # Environment Variables for Web Crawler
 ENV ALLOW_EMPTY_ITEM="false"
-ENV WRITE_OUTPUT_TO_S3="true"
+ENV AWS_WRITE_OUTPUT_TO_S3="false"
 ENV AWS_MAX_RERIES="5"
 ENV CRAWL_DELAY="5"
-ENV MAX_DEPTH="5"
+ENV MAX_DEPTH="0"
 ENV MAX_GO_ROUTINES="10000"
 ENV MAX_VISITED_URLS="5"
 ENV MAX_ITEMS_FOUND="5000"
@@ -15,8 +15,8 @@ ENV AWS_S3_BUCKET="webcrawler-results"
 ENV HEADER_KEY="User-Agent"
 ENV HEADER_VALUE="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"
 
-# Environment variables for web server 
-ENV PORT="9090"
+# Environment variables for web server
+ENV PORT=":9090"
 ENV LOG_LEVEL="INFO"
 ENV IDLE_TIMEOUT="120"
 ENV READ_TIMEOUT="60"

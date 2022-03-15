@@ -20,12 +20,12 @@ func (wc *WebCrawler) getEnvVariables() {
 		wc.Logger.WithField("ALLOW_EMPTY_ITEM: ", wc.Options.AllowEmptyItem).Info("Successfully got environment variable")
 	}
 
-	if os.Getenv("WRITE_OUTPUT_TO_S3") != "" {
-		wc.Options.WriteOutputToS3, err = env.GetEnvBool("WRITE_OUTPUT_TO_S3")
+	if os.Getenv("AWS_WRITE_OUTPUT_TO_S3") != "" {
+		wc.Options.AWSWriteOutputToS3, err = env.GetEnvBool("AWS_WRITE_OUTPUT_TO_S3")
 		if err != nil {
-			wc.Logger.WithError(err).Fatal("Failed to convert WRITE_OUTPUT_TO_S3 from string to bool")
+			wc.Logger.WithError(err).Fatal("Failed to convert AWS_WRITE_OUTPUT_TO_S3 from string to bool")
 		}
-		wc.Logger.WithField("WRITE_OUTPUT_TO_S3: ", wc.Options.WriteOutputToS3).Info("Successfully got environment variable")
+		wc.Logger.WithField("AWS_WRITE_OUTPUT_TO_S3: ", wc.Options.AWSWriteOutputToS3).Info("Successfully got environment variable")
 	}
 
 	if os.Getenv("AWS_MAX_RERIES") != "" {
@@ -86,22 +86,22 @@ func (wc *WebCrawler) getEnvVariables() {
 
 	if os.Getenv("AWS_REGION") != "" {
 		wc.Options.AWSRegion = os.Getenv("AWS_REGION")
-		wc.Logger.WithField(": ", wc.Options.AWSRegion).Info("Successfully got environment variable")
+		wc.Logger.WithField("AWS_REGION: ", wc.Options.AWSRegion).Info("Successfully got environment variable")
 	}
 
 	if os.Getenv("AWS_S3_BUCKET") != "" {
 		wc.Options.AWSS3Bucket = os.Getenv("AWS_S3_BUCKET")
-		wc.Logger.WithField(": ", wc.Options.AWSS3Bucket).Info("Successfully got environment variable")
+		wc.Logger.WithField("AWS_S3_BUCKET: ", wc.Options.AWSS3Bucket).Info("Successfully got environment variable")
 	}
 
 	if os.Getenv("HEADER_KEY") != "" {
 		wc.Options.HeaderKey = os.Getenv("HEADER_KEY")
-		wc.Logger.WithField(": ", wc.Options.HeaderKey).Info("Successfully got environment variable")
+		wc.Logger.WithField("HEADER_KEY: ", wc.Options.HeaderKey).Info("Successfully got environment variable")
 	}
 
 	if os.Getenv("HEADER_VALUE") != "" {
 		wc.Options.HeaderValue = os.Getenv("HEADER_VALUE")
-		wc.Logger.WithField(": ", wc.Options.HeaderValue).Info("Successfully got environment variable")
+		wc.Logger.WithField("HEADER_VALUE: ", wc.Options.HeaderValue).Info("Successfully got environment variable")
 	}
 
 	wc.Logger.Info("Successfully got environment variables")

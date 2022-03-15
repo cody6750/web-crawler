@@ -2,12 +2,12 @@ package options
 
 var (
 	defaultAllowEmptyItem        bool   = false
-	defaultWriteOutputToS3       bool   = false
+	defaultAWSWriteOutputToS3    bool   = false
 	defaultAWSMaxRetries         int    = 5
 	defaultCrawlDelay            int    = 5
-	defaultMaxDepth              int    = 0
+	defaultMaxDepth              int    = 2
 	defaultMaxGoRoutines         int    = 10000
-	defaultMaxVisitedUrls        int    = 10
+	defaultMaxVisitedUrls        int    = 5
 	defeaultMaxItemsFound        int    = 5000
 	defaultWebScraperWorkercount int    = 5
 	defaultAWSRegion             string = "us-east-1"
@@ -19,7 +19,7 @@ var (
 // Options ...
 type Options struct {
 	AllowEmptyItem        bool
-	WriteOutputToS3       bool
+	AWSWriteOutputToS3    bool
 	AWSMaxRetries         int
 	CrawlDelay            int
 	MaxDepth              int
@@ -38,7 +38,7 @@ type Options struct {
 func New() *Options {
 	return &Options{
 		AllowEmptyItem:        defaultAllowEmptyItem,
-		WriteOutputToS3:       defaultWriteOutputToS3,
+		AWSWriteOutputToS3:    defaultAWSWriteOutputToS3,
 		AWSMaxRetries:         defaultAWSMaxRetries,
 		CrawlDelay:            defaultCrawlDelay,
 		MaxDepth:              defaultMaxDepth,

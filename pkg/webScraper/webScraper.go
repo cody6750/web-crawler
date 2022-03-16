@@ -63,6 +63,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 		urlTagsToCheck  map[string]bool
 		urlsToCheck     map[string]bool = make(map[string]bool)
 	)
+
 	response, err := ConnectToWebsite(u.CurrentURL, ws.HeaderKey, ws.HeaderValue)
 	if err != nil {
 		return &Response{}, err
@@ -92,7 +93,7 @@ func (ws *WebScraper) Scrape(u *URL, itemsToGet []ScrapeItemConfig, urlsToGet ..
 				url, _ = ExtractURLWithScrapURLConfig(t, urlsToCheck, urlTagsToCheck, urlsToGet)
 			}
 
-			if url != "" {
+			if url != "" && isURL(url) {
 				if isBlackListedURLPath := ws.isBlackListedURLPath(url); !isBlackListedURLPath {
 					urls = append(urls, &URL{CurrentURL: url, ParentURL: u.CurrentURL, RootURL: u.RootURL, CurrentDepth: u.CurrentDepth + 1, MaxDepth: u.MaxDepth})
 				}

@@ -90,3 +90,29 @@ func TestConvertStringToNunber(t *testing.T) {
 		})
 	}
 }
+
+func Test_isURL(t *testing.T) {
+	type args struct {
+		url string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: " ",
+			want: false,
+			args: args{
+				url: "google.com",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isURL(tt.args.url); got != tt.want {
+				t.Errorf("isURL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

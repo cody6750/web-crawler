@@ -165,6 +165,7 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		return nil, fmt.Errorf("max depth is cannot be lower then 0. Current max depth: %v", wc.Options.MaxDepth)
 	}
 
+	//send initial URL
 	go func() {
 		wc.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: wc.Options.MaxDepth}})
 	}()
@@ -198,6 +199,7 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		wc.wg.Wait()
 		close(wgDone)
 	}()
+
 	select {
 	case <-wgDone:
 		// carry on
@@ -284,8 +286,8 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 				log.Printf("afrer %v", scrapeResponse.ExtractedItem)
 				wc.collectWebScraperResponse <- scrapeResponse
 			}()
-			ws.WaitGroup.Wait()
-		// Stop scraping, wait for all scrapes to finish before exiting function.
+
+			// Stop scraping, wait for all scrapes to finish before exiting function.
 		case <-ws.Stop:
 			ws.WaitGroup.Wait()
 			return ws, nil

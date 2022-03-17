@@ -64,7 +64,7 @@
   </li>
   <li><a href="#environment variables">Environment Variables</a></li>
   <li><a href="#start-crawling">Start crawling</a></li>
-  <li><a href="#features">features</a></li>
+  <li><a href="#features">Features</a></li>
   <li><a href="#contributing">Contributing</a></li>
   <li><a href="#license">License</a></li>
   <li><a href="#contact">Contact</a></li>

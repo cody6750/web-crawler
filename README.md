@@ -198,9 +198,70 @@ Environment Variable | Default Value | Description
 
 ## Start crawling
 The web crawler is hosted on a web server that is exposed using a REST API. To call the web crawler, we must make an http request to the web server that host the web crawler.
-1. Run the go exeutable locally or the web crawler docker container. Confirm that it is ready to recieve traffic.
-2.  
-
+1. Run the go executable locally or the web crawler docker container. Confirm that it is ready to recieve traffic.
+2. Send GET request to `<HOST_NAME>:9090/crawler/item` using the payload examples in `web/example`.
+```
+{
+    "RootURL" :"",
+    "ScrapeItemConfiguration": [ 
+        {
+            "ItemName" : "",
+            "ItemToGet" :  {
+                "Tag" : "",
+                "Attribute" : "",
+                "AttributeValue" : "",
+                "AttributeToGet" : ""
+            },
+            "ItemDetails" : {              
+                "price" : {
+                    "Tag": "",
+                    "Attribute": "",
+                    "AttributeValue" : "",
+                    "AttributeToGet" : "",
+                    "FilterConfiguration": {
+                        "IsLessThan" : "",
+                        "IsGreaterThan" : "", 
+                        "IsEqualTo" : "",
+                        "IsNotEqualTo": "",
+                        "Contains" : "",
+                        "ConvertStringToNumber" : ""
+                    },
+                    "FormatAttributeConfiguration" : {
+                        "SuffixExist" : "",
+                        "SuffixToAdd" : "",
+                        "SuffixToRemove" : "",
+                        "PrefixToAdd" : "",
+                        "PrefixExist" : "",
+                        "PrefixToRemove" : "",
+                        "ReplaceOldString" : "",
+                        "ReplaceNewString" : ""
+                    },
+                    "SkipToken" :""
+                }
+            }
+        }
+    ],
+    "ScrapeURLConfiguration": [
+        {
+           "ExtractFromTokenConfig": {
+            "Tag": "",
+            "Attribute": "",
+            "AttributeValue" : ""
+            },
+            "FormatURLConfiguration": {
+                "SuffixExist" : "",
+                "SuffixToAdd" : "",
+                "SuffixToRemove" : "",
+                "PrefixToAdd" : "",
+                "PrefixExist" : "",
+                "PrefixToRemove" : "",
+                "ReplaceOldString" : "",
+                "ReplaceNewString" : ""
+            }
+        }                       
+    ]
+}
+```
 ## Features
 The webcrawler includes various features:
 * Ability to crawl multiple request concurrently

@@ -10,7 +10,7 @@
                 "AttributeToGet" : ""
             },
             "ItemDetails" : {              
-                "price" : {
+                "<ITEM_NAME>" : {
                     "Tag": "",
                     "Attribute": "",
                     "AttributeValue" : "",

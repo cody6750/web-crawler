@@ -67,7 +67,7 @@
 
 ![Tracking Screen Shot][tracking-screenshot]
 
-A fast high-level web crawling and web scraping application framework that includes multiple features using Go. Used to crawl websites concurrently and extract structured data from their pages. Hosted on a web server in a Docker container on AWS. This project includes a Dockerfile that is ready to go out of the box and can be hosted locally. Simply follow the instructions below to get started!
+A fast high-level web crawling and web scraping application framework that includes multiple features using Go. Used to crawl websites concurrently and extract structured data from their pages. Hosted on a web server in a Docker container on AWS that implements a REST API. This project includes a Dockerfile that is ready to go out of the box and can be hosted locally. Simply follow the instructions below to get started!
 ### Design
 ![Design][Design]
 
@@ -192,14 +192,17 @@ Environment Variable | Default Value | Description
 `MAX_ITEMS_FOUND`  | 5000 | Maximum items extracted during an execution of a crawl.
 `PORT`  | :9090 | Port used to expose web server.
 `READ_TIMEOUT`  | 60 | Maximum duration for reading the entire request, including the body. 
-`WEB_SCRAPER_WORKER_COUNT`  | 5| Path of tracking configs used to call `webcrawler`.
-`WRITE_TIMEOUT`  | 60 | host name, used to send http request to `webcrawler`
+`WEB_SCRAPER_WORKER_COUNT`  | 5| Number of web scraper workers during an execution of a crawl.
+`WRITE_TIMEOUT`  | 60 | Maximum duration for writing the response.
 
 
 ## Start crawling
 The web crawler is hosted on a web server that is exposed using a REST API. To call the web crawler, we must make an http request to the web server that host the web crawler.
 1. Run the go executable locally or the web crawler docker container. Confirm that it is ready to recieve traffic.
-2. Send GET request to `<HOST_NAME>:9090/crawler/item` using the payload examples in `web/example`.
+2. Generate the payload.
+
+# Example empty payload: `web/example/empty_playoad.json`
+
 ```
 {
     "RootURL" :"",
@@ -213,7 +216,7 @@ The web crawler is hosted on a web server that is exposed using a REST API. To c
                 "AttributeToGet" : ""
             },
             "ItemDetails" : {              
-                "price" : {
+                "<ITEM_NAME>" : {
                     "Tag": "",
                     "Attribute": "",
                     "AttributeValue" : "",
@@ -262,6 +265,81 @@ The web crawler is hosted on a web server that is exposed using a REST API. To c
     ]
 }
 ```
+
+# Example payload: `web/example/playoad.json`
+```
+{
+    "RootURL" :"https://www.ebay.com/sch/i.html?_nkw=rtx+3050+graphics+card&_sop=15&rt=nc&LH_BIN=1",
+    "ScrapeItemConfiguration": [ 
+        {
+            "ItemName" : "Graphics Card",
+            "ItemToGet" :  {
+                "Tag" : "li",
+                "Attribute" : "class",
+                "AttributeValue" : "s-item s-item__pl-on-bottom s-item--watch-at-corner"
+            },
+            "ItemDetails" : {
+                "title" : {
+                    "Tag": "h3",
+                    "Attribute": "class",
+                    "AttributeValue" : "s-item__title"
+                },
+                "link" : {
+                    "Tag": "a",
+                    "Attribute": "class",
+                    "AttributeValue" : "s-item__link",
+                    "AttributeToGet": "href"
+                },                 
+                "price" : {
+                    "Tag": "span",
+                    "Attribute": "class",
+                    "AttributeValue" : "s-item__price",
+                    "FilterConfiguration": {
+                        "IsLessThan" : 450,
+                        "IsGreaterThan" : 200,
+                        "ConvertStringToNumber" : "true"
+                    }
+                }
+            }
+        }
+    ],
+    "ScrapeURLConfiguration": [
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "////",
+                "PrefixToRemove": "////",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "///",
+                "PrefixToRemove": "///",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "//",
+                "PrefixToRemove": "//",
+                "PrefixToAdd":    "http://"
+            }
+        },
+        {
+            "FormatURLConfiguration": {
+                "PrefixExist":    "/",
+                "PrefixToAdd":    "http://ebay.com"
+            }
+        }                        
+    ]
+}
+```
+![postman][postman]
+![tracking log][tracking-log]
+
+5. Send GET request to `<HOST_NAME>:9090/crawler/item` using the payload. There are examples in `web/example`.
+
+
 ## Features
 The webcrawler includes various features:
 * Ability to crawl multiple request concurrently
@@ -335,8 +413,8 @@ Project Link: [https://github.com/cody6750/web-crawler](https://github.com/cody6
 [license-url]: https://github.com/cody6750/discord-tracking-bot/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/cody-kieu-a6984a162/
-[product-screenshot]: media/discord.png
-[tracking-screenshot]: media/tracking.png
+[postman]: media/postman.png
+[tracking-log]: media/tracking_log.png
 [go-build-locally-screenshot]: media/build_locally.png
 [go-build-docker-locally-screenshot]: media/build_docker.png
 [admin-channels]: media/admin_channels.png

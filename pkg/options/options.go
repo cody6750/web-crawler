@@ -5,7 +5,7 @@ var (
 	defaultAWSWriteOutputToS3    bool   = false
 	defaultAWSMaxRetries         int    = 5
 	defaultCrawlDelay            int    = 5
-	defaultMaxDepth              int    = 2
+	defaultMaxDepth              int    = 1
 	defaultMaxGoRoutines         int    = 10000
 	defaultMaxVisitedUrls        int    = 20
 	defeaultMaxItemsFound        int    = 5000

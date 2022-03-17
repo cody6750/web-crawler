@@ -65,13 +65,9 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-![Product Name Screen Shot][product-screenshot]
 ![Tracking Screen Shot][tracking-screenshot]
 
-A fast high-level web crawling and web scraping application framework that includes multiple features using Go. Used to crawl websites concurrently and extract structured data from their pages. Designed to be hosted on a web server in a Docker container on AWS. This project includes a Dockerfile that is ready to go out of the box and can be hosted locally. Simply follow the instructions below to get started!
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+A fast high-level web crawling and web scraping application framework that includes multiple features using Go. Used to crawl websites concurrently and extract structured data from their pages. Hosted on a web server in a Docker container on AWS. This project includes a Dockerfile that is ready to go out of the box and can be hosted locally. Simply follow the instructions below to get started!
 ### Design
 ![Design][Design]
 
@@ -123,7 +119,7 @@ A fast high-level web crawling and web scraping application framework that inclu
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-The Web Crawler is designed to be deployed on AWS EC2 as a Docker container, though it can be deployed locally by building and executing the exectuable or deploying the Docker container locally on your machine. This section will cover 2 of the ways to do so. Please note that these instructions are for Mac OS using a bash terminal.
+The Web Crawler is designed to be deployed on AWS EC2 as a Docker container implementing a REST API, though it can be deployed locally by building and executing the exectuable or deploying the Docker container locally on your machine. This section will cover 2 of the ways to do so. Please note that these instructions are for Mac OS using a bash terminal.
 
 ### Build locally without Docker
 
@@ -180,29 +176,46 @@ The Discord Tracking Bot uses environment variables to set configuration. Use Do
 
 Environment Variable | Default Value | Description
 | :--- | ---: | :---:
-`AWS_REGION`  | us-east-1 | If `LOCAL_RUN` is set to `false`, this region is used to grab the AWS Secret from.
-`AWS_MAX_RETIRES`  | 5 | If `LOCAL_RUN` is set to `true . Maximum number of request to set up AWS session.
-`DISCORD_TOKEN_AWS_SECRET_NAME`  | discord/token | If `LOCAL_RUN` is set to `true . AWS Secret name to grab that contains Discord Token.
-`DISCORD_TOKEN`  | | Allows application to configure and connect to the Discord session.
-`LOCAL_RUN`  | false | Determines whether or not to create AWS session and grab AWS secret.
-`LOG_TO_DISCORD`  | true | Determines whether to send logs to Discord `log` channel.
-`MEDIA_PATH`  | /media/ | Path of media folder within running platform.
-`METRICS_TO_DISCORD`  | true | Determines whether to send metrics to Discord `metrics` channel.
-`TRACKING_CONFIG_PATH`  | /pkg/configs/tracking/ | Path of tracking configs used to call `webcrawler`.
-`TRACKING_CHANNELS_DELAY`  | 21600 | Used to determine tracking delay for all channels in seconds.
-`WEBCRAWLER_HOST`  | 5 | host name, used to send http request to `webcrawler`
-`WEBCRAWLER_PORT`  | 5 | host port, used to send http request to `webcrawler`
+`ALLOW_EMPTY_ITEM`  | false | Allows webcrawler to return scrape responses with empty items.
+`AWS_WRITE_OUTPUT_TO_S3`  | false | Determines whether to write scrape responses to S3.
+`AWS_MAX_RERIES`  | discord/token | If `AWS_WRITE_OUTPUT_TO_S3` is set to true, set maximum retry responses during creation of AWS session.
+`AWS_REGION`  | us-east-1 | If `AWS_WRITE_OUTPUT_TO_S3` is set to true, region to configure AWS session.
+`AWS_S3_BUCKET`  | webcrawler-results | If `AWS_WRITE_OUTPUT_TO_S3` is set to true, region to configure AWS session, S3 bucket to send scrape responses.
+`CRAWL_DELAY`  | 5 | Delay between crawls per web scraper worker.
+`HEADER_KEY`  | User-Agent | Header agent used during http request
+`HEADER_VALUE`  |Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36 | Header agent value used during http request.
+`LOG_LEVEL`  | INFO | Determines level of logs.
+`IDLE_TIMEOUT`  |120 | Maximum amount of time to wait for the next request when keep-alives are enabled.
+`MAX_DEPTH`  | 1 | Maximum crawl depth during an execution of a crawl.
+`MAX_GO_ROUTINES`  | 10000 | Maximum go routines deployed during an execution of a crawl.
+`MAX_VISITED_URLS`  | 20 | Maximum visited urls during an execution of a crawl.
+`MAX_ITEMS_FOUND`  | 5000 | Maximum items extracted during an execution of a crawl.
+`PORT`  | :9090 | Port used to expose web server.
+`READ_TIMEOUT`  | 60 | Maximum duration for reading the entire request, including the body. 
+`WEB_SCRAPER_WORKER_COUNT`  | 5| Path of tracking configs used to call `webcrawler`.
+`WRITE_TIMEOUT`  | 60 | host name, used to send http request to `webcrawler`
+
+
+## Start crawling
+The web crawler is hosted on a web server that is exposed using a REST API. To call the web crawler, we must make an http request to the web server that host the web crawler.
+1. Run the go exeutable locally or the web crawler docker container. Confirm that it is ready to recieve traffic.
+2.  
 
 ## Features
-
+The webcrawler includes various features:
+* Ability to crawl multiple request concurrently
+* REST API
+* Json validation middleware
+* Crawl depth restrictions
+* Liveleness and readiness health checks
+* Respects robots.txt
+* Metrics
+* Generates output files in JSON
+* Sends output files to S3 bucket
+* Item and URL validation
+* Unit test
 * Sends metrics to metrics channel
-![metrics][metrics]
 
-* Logs to both discord and stdout
-![logs][logs]
-
-* Ability to control bot through discord `bot_console` channel
-![bot-console][bot-console]
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -241,7 +254,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 Cody Kieu - cody6750@gmail.com
 
-Project Link: [https://github.com/cody6750/discord-tracking-bot](https://github.com/cody6750/discord-tracking-bot)
+Project Link: [https://github.com/cody6750/web-crawler](https://github.com/cody6750/web-crawler)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

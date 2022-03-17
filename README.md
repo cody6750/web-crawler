@@ -33,7 +33,7 @@
     <img src="media/crawler.png" alt="Logo" width="240" height="240">
   </a>
 
-<h1 align="center">Web Crawler</h1>
+<h1 align="center">Web Crawler</h1>  
 </div>
 
 
@@ -68,14 +68,18 @@
 ![Product Name Screen Shot][product-screenshot]
 ![Tracking Screen Shot][tracking-screenshot]
 
-A fast high-level web crawling and web scraping application framework using Go. Used to crawl websites concurrently and extract structured data from their pages.
+A fast high-level web crawling and web scraping application framework that includes multiple features using Go. Used to crawl websites concurrently and extract structured data from their pages. Designed to be hosted on a web server in a Docker container on AWS. This project includes a Dockerfile that is ready to go out of the box and can be hosted locally. Simply follow the instructions below to get started!
 
 <p align="right">(<a href="#top">back to top</a>)</p>
+
+### Design
+![Design][Design]
+
 
 ### Built With
 
 * [Go](https://go.dev/)
-* [discordgo](https://github.com/bwmarrin/discordgo)
+* [gorilla](https://github.com/gorilla/mux)
 * [Logrus](https://github.com/sirupsen/logrus)
 * [Docker](https://www.docker.com/)
 * [AWS](https://aws.amazon.com/)
@@ -100,21 +104,17 @@ A fast high-level web crawling and web scraping application framework using Go. 
 4. If you are deploying the container to AWS, please configure your AWS credentials.
   Please see [this page](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html) for assistance.
 
-5. The Discord Tracking Bot is designed to call upon the  [web crawler](https://github.com/cody6750/web-crawler) via REST API calls and return that       response in a formated structure to the designated discord channel. This assumes you already have a working webcrawler deployed. If not, please see [web  crawler](https://github.com/cody6750/web-crawler) for deployment instructions.
-
 ### Installation
 
-1. In your Discord developer portal, create an API token for the Discord bot. If you are using AWS, you are able to store the API token into AWS secrets.
-
-2. Clone the repo
+1. Clone the repo
    ```sh
-   git clone https://github.com/cody6750/discord-tracking-bot
+   git clone https://github.com/cody6750/web-crawler
    ```
 
-3. Get Go packages
+2. Get Go packages
    ```sh
 	go get github.com/aws/aws-sdk-go
-	go get github.com/bwmarrin/discordgo 
+	go get github.com/gorilla/mux
 	go get github.com/sirupsen/logrus 
    ```
 
@@ -123,54 +123,16 @@ A fast high-level web crawling and web scraping application framework using Go. 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-The Discord Tracking bot was designed to be deployed on AWS EC2 as a Docker container, though it can be deployed locally by building and executing the go files or deploying the Docker container locally on your machine. This section will cover only 2 of the ways to do so. Please note that these instructions are for Mac OS using a bash terminal. 
-
-### Set up Discord server
-
-1. Set up `metrics` channel. Metrics will be sent to this channel.
-2. Set up `logs` channel. Logs will be sent to this channel.
-3. Set up `bot_console` channel. Bot will respond to commands in this channel.
-
-![Admin channels][admin-channels]
-
-4. Set up category. Naming must be in this convention `tracking_<CATEOGORY>`. For example `tracking_graphics_cards` or `tracking_consoles`. The bot uses the category to determine what to track in which channels. The category `graphics cards` or `consoles` is used in `/pkg/configs/<CATEGORY>` to determine which directory to use.
-5. Set up channels. Naming must be in this convention `tracking_<ITEM_NAME>`. The item name is used to in the `/pkg/configs/<CATEGORY>/<ITEM_NAME>` to choose the config file.
-
-![Tracking channels][tracking-channels]
-![Tracking configs][tracking-configs]
-
-
-### Set AWS Secret 
-If you are planning on storing your Discord Api token in AWS secrets, please follow these instructions so that the bot can grab them. If not, please continue to the next section of the guide.
-1. Create AWS Secret with your Discord Api token.
-
-2. Set `LOCAL_RUN` as `false`
-  ```sh
-  set LOCAL_RUN=false
-  ```
-
-3. Set `DISCORD_TOKEN_AWS_SECRET_NAME` as the name of your AWS secret
-  ```sh
-  set DISCORD_TOKEN_AWS_SECRET_NAME=<SECRET_NAME>
-  ```
-
+The Web Crawler is designed to be deployed on AWS EC2 as a Docker container, though it can be deployed locally by building and executing the exectuable or deploying the Docker container locally on your machine. This section will cover 2 of the ways to do so. Please note that these instructions are for Mac OS using a bash terminal.
 
 ### Build locally without Docker
 
-1. Navigate to the `discord-tracking-bot` repo location.
-2. Set `LOCAL_RUN` environment variable to `true`
-  ```sh
-  set LOCAL_RUN=true
-  ```
-3. Set `DISCORD_TOKEN` environment variable to your Discord api token.
-  ```sh
-  set DISCORD_TOKEN=<YOUR_DISCORD_TOKEN>
-  ```
-4. Navigate to the main directory, build the go exectuable 
+1. Navigate to `webcrawler` repo location
+2. Navigate to the `/web` directory, build the go exectuable . Set environment variables if you want to override anything.
 ```sh
 go build -o app 
 ```
-5. Run the go exectuable
+3. Run the go exectuable
 ```sh
 ./app
 ```
@@ -182,34 +144,19 @@ go build -o app
 
 1. Navigate to the `discord-tracking-bot` repo location.
 
-2. Set `LOCAL_RUN` environment variable to `true` in `discord-trackingbot/Dockerfile`
-  ```sh
-  ENV LOCAL_RUN="false"
-  ```
-
-3. Set `DISCORD_TOKEN` environment variable to your Discord api token in `discord-trackingbot/Dockerfile`
-  ```sh
-  ENV DISCORD_TOKEN=<YOUR_DISCORD_TOKEN>
-  ```
-
-4. Build the go exectuable 
+2. Navigate to the `/web` directory, build the go exectuable .
 ```sh
 go build -o app 
 ```
 
-5. Build the Docker image using the Dockerfile. 
+5. Build the Docker image using the Dockerfile. Set environment variables if you want to override anything, in the Dockerfile.
 ```sh
-docker build -t discordbot .
+docker build -t webcrawler .
 ```
 
-6. Run the Docker bot.
-Flags:
-- `-d` OPTIONAL. Runs the container in detached mode.
-- `-e` OPTIONAL. Sets environment variables.
-- `-v` REQUIRED. Mounts volume to Docker container. Used to obtain configs and media from local machine.
-- `--name` OPTIONAL. Sets docker container name.
+6. Run the Docker image.
 ```sh
-  docker run -d -e LOCAL_RUN=${LOCAL_RUN} -e DISCORD_TOKEN=${DISCORD_TOKEN} -v /Users/cody.kieu/github/discord-tracking-bot/pkg:/pkg -v /Users/cody.kieu/github/discord-tracking-bot/media:/media --name discordbot discordbot
+  docker run -d -p 9090:9090 --network=discord --name webcrawler webcrawler
 ```
 
 7. Check for docker container
@@ -219,14 +166,13 @@ Flags:
 
 8. Check docker logs
 ```sh
-  docker logs discordbot
+  docker logs webcrawler
 ```
 
 ![Go build docker locally][go-build-docker-locally-screenshot]
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
 
 
 ## Environment Variables
@@ -317,11 +263,12 @@ Project Link: [https://github.com/cody6750/discord-tracking-bot](https://github.
 [linkedin-url]: https://www.linkedin.com/in/cody-kieu-a6984a162/
 [product-screenshot]: media/discord.png
 [tracking-screenshot]: media/tracking.png
-[go-build-locally-screenshot]: media/go_build_locally.png
-[go-build-docker-locally-screenshot]: media/go_build_docker_locally.png
+[go-build-locally-screenshot]: media/build_locally.png
+[go-build-docker-locally-screenshot]: media/build_docker.png
 [admin-channels]: media/admin_channels.png
 [tracking-channels]: media/tracking_channels.png
 [tracking-configs]: media/tracking_configs.png
 [metrics]: media/metrics.png
 [bot-console]: media/bot_console.png
 [logs]: media/logs.png
+[Design]: media/design.png

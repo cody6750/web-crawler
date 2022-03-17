@@ -427,7 +427,7 @@ Project Link: [https://github.com/cody6750/web-crawler](https://github.com/cody6
 [go-build-docker-locally-screenshot]: media/build_docker.png
 [admin-channels]: media/admin_channels.png
 [tracking-channels]: media/tracking_channels.png
-[tracking-configs]: media/tracking_configs.png
+[tracking-screenshot]: media/tracking.png
 [metrics]: media/metrics.png
 [bot-console]: media/bot_console.png
 [logs]: media/logs.png

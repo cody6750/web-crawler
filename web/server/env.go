@@ -29,6 +29,7 @@ func (wcs *WebCrawlerServer) processEnvironmentVariables() error {
 			wcs.logger.Error("unsupported log type %v, using default logger", wcs.Options.LogLevel)
 		}
 	}
+
 	if os.Getenv("IDLE_TIMEOUT") != "" {
 		time, err := env.GetEnvTime(os.Getenv("IDLE_TIMEOUT"))
 		wcs.logger.WithField("IDLE_TIMEOUT", time.Seconds()).Debug("IDLE_TIMEOUT overide found. Overriding with value %v", time.Seconds())

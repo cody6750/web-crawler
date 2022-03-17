@@ -109,6 +109,9 @@ func NewWithOptions(options *options.Options) *WebCrawler {
 	wc.Logger.SetFormatter(&logrus.TextFormatter{ForceColors: true, FullTimestamp: true})
 	wc.Options = options
 	wc.getEnvVariables()
+	if wc.Options.AWSWriteOutputToS3 {
+		wc.initAWS(wc.Options.AWSMaxRetries, wc.Options.AWSRegion)
+	}
 	return wc
 }
 
@@ -161,6 +164,7 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		return nil, fmt.Errorf("max depth is cannot be lower then 0. Current max depth: %v", wc.Options.MaxDepth)
 	}
 
+	//send initial URL
 	go func() {
 		wc.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: wc.Options.MaxDepth}})
 	}()
@@ -194,6 +198,7 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		wc.wg.Wait()
 		close(wgDone)
 	}()
+
 	select {
 	case <-wgDone:
 		// carry on
@@ -203,18 +208,20 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 	}
 
 	response := &Response{WebScraperResponses: wc.webScraperResponses, Metrics: &wc.metrics}
-	if wc.Options.WriteOutputToS3 {
-		wc.initAWS(wc.Options.AWSMaxRetries, wc.Options.AWSRegion)
+	if wc.Options.AWSWriteOutputToS3 {
 		out, err := json.Marshal(response)
 		if err != nil {
 			wc.Logger.WithError(err).Error("Unable to marshal json")
 			return response, err
 		}
-		err = services.WriteToS3(wc.s3Svc, strings.NewReader(string(out)), wc.Options.AWSS3Bucket, services.GenerateFileName("crawl_results", ".json"), "")
+		outputFile := services.GenerateFileName("crawl_results", ".json")
+		err = services.WriteToS3(wc.s3Svc, strings.NewReader(string(out)), wc.Options.AWSS3Bucket, outputFile, "")
 		if err != nil {
 			wc.Logger.WithError(err).Error("Unable to upload file to S3")
 			return response, err
 		}
+		wc.Logger.WithField("output File", outputFile).Info("Successfully uploaded file to S3")
+
 	}
 	wc.Logger.WithField("url", url).Info("Finished crawling url")
 	return response, nil
@@ -267,16 +274,16 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 				}
 				wc.incrementMetrics(&Metrics{URL: url.RootURL, UrlsFound: len(scrapeResponse.ExtractedURLs), UrlsVisited: 1, ItemsFound: len(scrapeResponse.ExtractedItem)})
 				wc.Logger.Infof("Go routine:%v | Crawling url: %v | Current depth: %v | Url Visited: %v | Url Found : %v | Duplicate Url found: %v | Items Found: %v", scraperNumber, url.CurrentURL, url.CurrentDepth, wc.metrics.UrlsVisited, wc.metrics.UrlsFound, wc.metrics.DuplicatedUrlsFound, wc.metrics.ItemsFound)
-				wc.processScrapedUrls(scrapeResponse.ExtractedURLs)
-				wc.pendingUrlsToCrawlCount <- -1
 				if !wc.Options.AllowEmptyItem && len(scrapeResponse.ExtractedItem) == 0 {
 					return
 				}
 				wc.collectWebScraperResponse <- scrapeResponse
+				wc.processScrapedUrls(scrapeResponse.ExtractedURLs)
+				wc.pendingUrlsToCrawlCount <- -1
 			}()
+
 		// Stop scraping, wait for all scrapes to finish before exiting function.
 		case <-ws.Stop:
-			ws.WaitGroup.Wait()
 			return ws, nil
 		}
 	}
@@ -315,9 +322,7 @@ func (wc *WebCrawler) processScrapedUrls(scrapedUrls []*webscraper.URL) {
 		return
 	}
 
-	if scrapedUrls[0].CurrentDepth > wc.Options.MaxDepth {
-		//continue
-	} else {
+	if scrapedUrls[0].CurrentDepth <= wc.Options.MaxDepth {
 		for _, url := range scrapedUrls {
 			wc.pendingUrlsToCrawl <- url
 			wc.pendingUrlsToCrawlCount <- 1

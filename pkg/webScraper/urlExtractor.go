@@ -30,7 +30,7 @@ type ScrapeURLConfig struct {
 //ExtractURL extracts url from html token. Checks for duplicates
 func ExtractURL(t html.Token, extractedUrls map[string]bool) string {
 	url, _ := extractURLFromToken(t)
-	if url != "" && !isDuplicateURL(url, extractedUrls) {
+	if url != "" && !isDuplicateURL(url, extractedUrls) && isURL(url) {
 		return url
 	}
 	return ""
@@ -48,12 +48,12 @@ func ExtractURLWithScrapURLConfig(t html.Token, urlsToCheck map[string]bool, tag
 		} else {
 			url, _ = extractURLFromToken(t)
 		}
-		if url == "" {
+		if url == "" || !isURL(url) {
 			continue
 		}
 		if !IsEmpty(scrapeURLConfig.FormatURLConfig) {
 			formatedURL := formatURL(url, scrapeURLConfig.FormatURLConfig)
-			if formatedURL == "" {
+			if formatedURL == "" || !isURL(formatedURL) {
 				continue
 			}
 			if !isDuplicateURL(formatedURL, urlsToCheck) && url != "" {
@@ -61,6 +61,9 @@ func ExtractURLWithScrapURLConfig(t html.Token, urlsToCheck map[string]bool, tag
 
 			}
 		} else {
+			if !isURL(url) {
+				continue
+			}
 			return url, nil
 		}
 	}

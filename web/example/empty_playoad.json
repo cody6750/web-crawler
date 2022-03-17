@@ -1,0 +1,60 @@
+{
+    "RootURL" :"",
+    "ScrapeItemConfiguration": [ 
+        {
+            "ItemName" : "",
+            "ItemToGet" :  {
+                "Tag" : "",
+                "Attribute" : "",
+                "AttributeValue" : "",
+                "AttributeToGet" : ""
+            },
+            "ItemDetails" : {              
+                "<ITEM_NAME>" : {
+                    "Tag": "",
+                    "Attribute": "",
+                    "AttributeValue" : "",
+                    "AttributeToGet" : "",
+                    "FilterConfiguration": {
+                        "IsLessThan" : "",
+                        "IsGreaterThan" : "", 
+                        "IsEqualTo" : "",
+                        "IsNotEqualTo": "",
+                        "Contains" : "",
+                        "ConvertStringToNumber" : ""
+                    },
+                    "FormatAttributeConfiguration" : {
+                        "SuffixExist" : "",
+                        "SuffixToAdd" : "",
+                        "SuffixToRemove" : "",
+                        "PrefixToAdd" : "",
+                        "PrefixExist" : "",
+                        "PrefixToRemove" : "",
+                        "ReplaceOldString" : "",
+                        "ReplaceNewString" : ""
+                    },
+                    "SkipToken" :""
+                }
+            }
+        }
+    ],
+    "ScrapeURLConfiguration": [
+        {
+           "ExtractFromTokenConfig": {
+            "Tag": "",
+            "Attribute": "",
+            "AttributeValue" : ""
+            },
+            "FormatURLConfiguration": {
+                "SuffixExist" : "",
+                "SuffixToAdd" : "",
+                "SuffixToRemove" : "",
+                "PrefixToAdd" : "",
+                "PrefixExist" : "",
+                "PrefixToRemove" : "",
+                "ReplaceOldString" : "",
+                "ReplaceNewString" : ""
+            }
+        }                       
+    ]
+}

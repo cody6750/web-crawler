@@ -36,7 +36,7 @@ func GetEnvInt(envVar string) (int, error) {
 
 //GetEnvTime converts string to time duration
 func GetEnvTime(input string) (time.Duration, error) {
-	duration, err := strconv.Atoi(os.Getenv(input))
+	duration, err := strconv.Atoi(input)
 	if err != nil {
 		return 0, err
 	}

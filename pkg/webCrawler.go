@@ -282,7 +282,6 @@ func (wc *WebCrawler) runWebScraper(scraperNumber int, itemsToget []webscraper.S
 
 		// Stop scraping, wait for all scrapes to finish before exiting function.
 		case <-ws.Stop:
-			wc.wg.Wait()
 			return ws, nil
 		}
 	}

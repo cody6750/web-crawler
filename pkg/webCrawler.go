@@ -164,6 +164,7 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		return nil, fmt.Errorf("max depth is cannot be lower then 0. Current max depth: %v", wc.Options.MaxDepth)
 	}
 
+	//send initial URL
 	go func() {
 		wc.processScrapedUrls([]*webscraper.URL{{RootURL: url, CurrentURL: url, CurrentDepth: 0, MaxDepth: wc.Options.MaxDepth}})
 	}()
@@ -197,6 +198,7 @@ func (wc *WebCrawler) Crawl(url string, itemsToget []webscraper.ScrapeItemConfig
 		wc.wg.Wait()
 		close(wgDone)
 	}()
+
 	select {
 	case <-wgDone:
 		// carry on

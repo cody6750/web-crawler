@@ -7,7 +7,7 @@ var (
 	defaultCrawlDelay            int    = 5
 	defaultMaxDepth              int    = 2
 	defaultMaxGoRoutines         int    = 10000
-	defaultMaxVisitedUrls        int    = 5
+	defaultMaxVisitedUrls        int    = 20
 	defeaultMaxItemsFound        int    = 5000
 	defaultWebScraperWorkercount int    = 5
 	defaultAWSRegion             string = "us-east-1"

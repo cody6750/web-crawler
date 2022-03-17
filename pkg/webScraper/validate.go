@@ -139,3 +139,10 @@ func ConvertStringToNunber(s string) interface{} {
 	}
 	return nil
 }
+
+func isURL(url string) bool {
+	if strings.Contains(url, ".com") || strings.Contains(url, ".net") || strings.Contains(url, ".org") {
+		return true
+	}
+	return false
+}

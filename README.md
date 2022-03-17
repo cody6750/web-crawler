@@ -44,6 +44,7 @@
   <li>
     <a href="#about-the-project">About The Project</a>
     <ul>
+      <li><a href="#design">Design</a></li>    
       <li><a href="#built-with">Built With</a></li>
     </ul>
   </li>
@@ -54,8 +55,15 @@
       <li><a href="#installation">Installation</a></li>
     </ul>
   </li>
-  <li><a href="#usage">Usage</a></li>
+    <li>
+    <a href="#usage">Usage</a></li>
+    <ul>
+      <li><a href="#build-locally-without-docker">Build locally without Docker</a></li>
+      <li><a href="#build-locally-with-docker">Build locally with Docker</a></li>
+    </ul>
+  </li>
   <li><a href="#environment variables">Environment Variables</a></li>
+  <li><a href="#start-crawling">Start crawling</a></li>
   <li><a href="#features">features</a></li>
   <li><a href="#contributing">Contributing</a></li>
   <li><a href="#license">License</a></li>
@@ -201,7 +209,7 @@ The web crawler is hosted on a web server that is exposed using a REST API. To c
 1. Run the go executable locally or the web crawler docker container. Confirm that it is ready to recieve traffic.
 2. Generate the payload.
 
-# Example empty payload: `web/example/empty_playoad.json`
+Example empty payload: `web/example/empty_playoad.json`
 
 ```
 {
@@ -266,7 +274,7 @@ The web crawler is hosted on a web server that is exposed using a REST API. To c
 }
 ```
 
-# Example payload: `web/example/playoad.json`
+Example payload: `web/example/playoad.json`
 ```
 {
     "RootURL" :"https://www.ebay.com/sch/i.html?_nkw=rtx+3050+graphics+card&_sop=15&rt=nc&LH_BIN=1",
@@ -334,11 +342,11 @@ The web crawler is hosted on a web server that is exposed using a REST API. To c
     ]
 }
 ```
-![postman][postman]
-![tracking log][tracking-log]
 
 5. Send GET request to `<HOST_NAME>:9090/crawler/item` using the payload. There are examples in `web/example`.
 
+![postman][postman]
+![tracking log][tracking-log]
 
 ## Features
 The webcrawler includes various features:
